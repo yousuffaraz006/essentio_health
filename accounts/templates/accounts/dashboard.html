@@ -1,0 +1,266 @@
+{% extends "accounts/base.html" %}
+
+{% block page_styles %}
+<style>
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8 animate-fade-in">
+    <div class="gradient-essentio rounded-2xl p-8 text-primary-foreground shadow-essentio-lg">
+        <h2 class="text-3xl font-bold mb-2">Welcome to Essentio Admin</h2>
+        <p class="text-primary-foreground/80 max-w-lg">Manage your organization's health and
+            wellness programs with our comprehensive admin dashboard.</p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-center gap-4">
+                    <div class="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-users h-6 w-6 text-primary">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-muted-foreground">Total Admin Users</p>
+                        <p class="text-3xl font-bold text-foreground">4</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-center gap-4">
+                    <div class="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-user-check h-6 w-6 text-success">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <polyline points="16 11 18 13 22 9"></polyline>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-muted-foreground">Active Admins</p>
+                        <p class="text-3xl font-bold text-foreground">3</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-center gap-4">
+                    <div class="h-12 w-12 rounded-xl bg-secondary/10 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-building2 h-6 w-6 text-secondary">
+                            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+                            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+                            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+                            <path d="M10 6h4"></path>
+                            <path d="M10 10h4"></path>
+                            <path d="M10 14h4"></path>
+                            <path d="M10 18h4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-muted-foreground">Companies</p>
+                        <p class="text-3xl font-bold text-foreground">3</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-center gap-4">
+                    <div class="h-12 w-12 rounded-xl bg-accent/20 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-activity h-6 w-6 text-accent-foreground">
+                            <path
+                                d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2">
+                            </path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-muted-foreground">Company Users</p>
+                        <p class="text-3xl font-bold text-foreground">3</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col space-y-1.5 p-6">
+                <h3 class="font-semibold tracking-tight text-lg flex items-center gap-2"><svg
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-users h-5 w-5 text-primary">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>Recent Admin Users</h3>
+            </div>
+            <div class="p-6 pt-0">
+                <div class="space-y-4">
+                    <div
+                        class="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="h-10 w-10 rounded-full gradient-essentio flex items-center justify-center text-primary-foreground font-semibold">
+                                D</div>
+                            <div>
+                                <p class="font-medium text-foreground">Dr. Sarah Johnson</p>
+                                <p class="text-sm text-muted-foreground">Super Admin, Doctor</p>
+                            </div>
+                        </div><span
+                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-success/10 text-success">Active</span>
+                    </div>
+                    <div
+                        class="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="h-10 w-10 rounded-full gradient-essentio flex items-center justify-center text-primary-foreground font-semibold">
+                                D</div>
+                            <div>
+                                <p class="font-medium text-foreground">Dr. Michael Chen</p>
+                                <p class="text-sm text-muted-foreground">Doctor</p>
+                            </div>
+                        </div><span
+                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-success/10 text-success">Active</span>
+                    </div>
+                    <div
+                        class="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="h-10 w-10 rounded-full gradient-essentio flex items-center justify-center text-primary-foreground font-semibold">
+                                E</div>
+                            <div>
+                                <p class="font-medium text-foreground">Emma Williams</p>
+                                <p class="text-sm text-muted-foreground">Health Coach, Dietitian</p>
+                            </div>
+                        </div><span
+                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-success/10 text-success">Active</span>
+                    </div>
+                    <div
+                        class="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="h-10 w-10 rounded-full gradient-essentio flex items-center justify-center text-primary-foreground font-semibold">
+                                J</div>
+                            <div>
+                                <p class="font-medium text-foreground">James Taylor</p>
+                                <p class="text-sm text-muted-foreground">Dietitian</p>
+                            </div>
+                        </div><span
+                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground">Inactive</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col space-y-1.5 p-6">
+                <h3 class="font-semibold tracking-tight text-lg flex items-center gap-2"><svg
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-building2 h-5 w-5 text-secondary">
+                        <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+                        <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+                        <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+                        <path d="M10 6h4"></path>
+                        <path d="M10 10h4"></path>
+                        <path d="M10 14h4"></path>
+                        <path d="M10 18h4"></path>
+                    </svg>Recent Companies</h3>
+            </div>
+            <div class="p-6 pt-0">
+                <div class="space-y-4">
+                    <div
+                        class="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="h-10 w-10 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="lucide lucide-building2 h-5 w-5 text-secondary">
+                                    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+                                    <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+                                    <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+                                    <path d="M10 6h4"></path>
+                                    <path d="M10 10h4"></path>
+                                    <path d="M10 14h4"></path>
+                                    <path d="M10 18h4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-medium text-foreground">TechCorp Australia</p>
+                                <p class="text-sm text-muted-foreground">Sydney, NSW</p>
+                            </div>
+                        </div><span class="text-sm text-muted-foreground">500-1000</span>
+                    </div>
+                    <div
+                        class="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="h-10 w-10 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="lucide lucide-building2 h-5 w-5 text-secondary">
+                                    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+                                    <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+                                    <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+                                    <path d="M10 6h4"></path>
+                                    <path d="M10 10h4"></path>
+                                    <path d="M10 14h4"></path>
+                                    <path d="M10 18h4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-medium text-foreground">HealthFirst Industries</p>
+                                <p class="text-sm text-muted-foreground">Melbourne, VIC</p>
+                            </div>
+                        </div><span class="text-sm text-muted-foreground">100-500</span>
+                    </div>
+                    <div
+                        class="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="h-10 w-10 rounded-lg bg-gradient-to-br from-secondary/20 to-accent/20 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="lucide lucide-building2 h-5 w-5 text-secondary">
+                                    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+                                    <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+                                    <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+                                    <path d="M10 6h4"></path>
+                                    <path d="M10 10h4"></path>
+                                    <path d="M10 14h4"></path>
+                                    <path d="M10 18h4"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-medium text-foreground">Green Mining Co</p>
+                                <p class="text-sm text-muted-foreground">Perth, WA</p>
+                            </div>
+                        </div><span class="text-sm text-muted-foreground">1000+</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    console.log("Dashboard Loaded");
+</script>
+{% endblock %}

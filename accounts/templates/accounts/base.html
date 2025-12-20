@@ -1,12 +1,116 @@
+{% load static tailwind_tags %}
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    
+    <title>Essentio Health</title>
+    <link rel="stylesheet" href="{% static 'css/lovable.css' %}">
+    {% block page_styles %} {% endblock %}
+    {% tailwind_css %}
 </head>
+
 <body>
-    
+    <div class="group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar"
+        style="--sidebar-width: 16rem; --sidebar-width-icon: 3rem;">
+        <div class="min-h-screen flex w-full">
+            <div class="group peer hidden text-sidebar-foreground md:block" data-state="expanded" data-collapsible=""
+                data-variant="sidebar" data-side="left">
+                <div
+                    class="relative h-svh w-[--sidebar-width] bg-transparent transition-[width] duration-200 ease-linear group-data-[collapsible=offcanvas]:w-0 group-data-[side=right]:rotate-180 group-data-[collapsible=icon]:w-[--sidebar-width-icon]">
+                </div>
+                <div
+                    class="fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] duration-200 ease-linear md:flex left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l border-r border-sidebar-border">
+                    <div data-sidebar="sidebar"
+                        class="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow">
+                        <div data-sidebar="header" class="flex flex-col gap-2 p-4">
+                            <div class="flex items-center gap-3"><img src="{% static 'images/essentio-logo-EOonwptu.png' %}"
+                                    alt="Essentio" class="h-8 w-auto"><span
+                                    class="text-xl font-bold text-gradient-essentio">Essentio</span></div>
+                        </div>
+                        <div data-sidebar="content"
+                            class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden">
+                            <div data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+                                <div data-sidebar="group-label"
+                                    class="flex h-8 shrink-0 items-center rounded-md px-2 font-medium outline-none ring-sidebar-ring transition-[margin,opa] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground text-xs uppercase tracking-wider">
+                                    Management</div>
+                                <div data-sidebar="group-content" class="w-full text-sm">
+                                    <ul data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-1">
+                                        <li data-sidebar="menu-item" class="group/menu-item relative"><a
+                                                data-sidebar="menu-button" data-size="default" data-active="false"
+                                                aria-current="page"
+                                                class="peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90 active"
+                                                href="/"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                    class="lucide lucide-layout-dashboard h-5 w-5">
+                                                    <rect width="7" height="9" x="3" y="3" rx="1"></rect>
+                                                    <rect width="7" height="5" x="14" y="3" rx="1"></rect>
+                                                    <rect width="7" height="9" x="14" y="12" rx="1"></rect>
+                                                    <rect width="7" height="5" x="3" y="16" rx="1"></rect>
+                                                </svg><span class="font-medium">Dashboard</span></a></li>
+                                        <li data-sidebar="menu-item" class="group/menu-item relative"><a
+                                                data-sidebar="menu-button" data-size="default" data-active="false"
+                                                class="peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 hover:bg-sidebar-accent"
+                                                href="/admin-users"><svg xmlns="http://www.w3.org/2000/svg" width="24"
+                                                    height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                    class="lucide lucide-users h-5 w-5">
+                                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                                    <circle cx="9" cy="7" r="4"></circle>
+                                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                                </svg><span class="font-medium">Admin Users</span></a></li>
+                                        <li data-sidebar="menu-item" class="group/menu-item relative"><a
+                                                data-sidebar="menu-button" data-size="default" data-active="false"
+                                                class="peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&amp;&gt;span:last-child]:truncate [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-sm flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 hover:bg-sidebar-accent"
+                                                href="/companies"><svg xmlns="http://www.w3.org/2000/svg" width="24"
+                                                    height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                    class="lucide lucide-building2 h-5 w-5">
+                                                    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+                                                    <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+                                                    <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+                                                    <path d="M10 6h4"></path>
+                                                    <path d="M10 10h4"></path>
+                                                    <path d="M10 14h4"></path>
+                                                    <path d="M10 18h4"></path>
+                                                </svg><span class="font-medium">Companies</span></a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div data-sidebar="footer" class="flex flex-col gap-2 p-2"><button
+                                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 hover:text-accent-foreground h-10 w-full hover:bg-sidebar-accent"><svg
+                                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="lucide lucide-chevron-left h-4 w-4">
+                                    <path d="m15 18-6-6 6-6"></path>
+                                </svg></button></div>
+                    </div>
+                </div>
+            </div>
+            <main class="flex-1 flex flex-col">
+                <header
+                    class="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center px-6 sticky top-0 z-10">
+                    <button
+                        class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-7 w-7 mr-4"
+                        data-sidebar="trigger"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-panel-left">
+                            <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+                            <path d="M9 3v18"></path>
+                        </svg><span class="sr-only">Toggle Sidebar</span></button>
+                    <h1 class="text-xl font-semibold text-foreground">Dashboard</h1>
+                </header>
+                <div class="flex-1 p-6 overflow-auto">
+                    {% block content %}{% endblock %}
+                </div>
+            </main>
+        </div>
+    </div>
+    {% block page_scripts %} {% endblock %}
 </body>
+
 </html>
