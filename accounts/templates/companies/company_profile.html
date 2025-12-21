@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>Company: {{ company.name }}</h3>
+<p><strong>CEO:</strong> {{ company.ceo }} &nbsp; <strong>Size:</strong> {{ company.size_of_business }}</p>
+
+<h5>Employees</h5>
+<table id="companyEmployeesTable" class="table">
+  <thead><tr><th>First</th><th>Last</th><th>Email</th><th>Phone</th><th>City</th><th>Actions</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const url = `{% url 'companies:company_employees_json_url' company.id %}`;
+  const r = await fetch(url);
+  const data = await r.json();
+  const tbody = document.querySelector('#companyEmployeesTable tbody');
+  data.data.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.first_name}</td>
+      <td>${row.last_name}</td>
+      <td>${row.email}</td>
+      <td>${row.phone}</td>
+      <td>${row.city}</td>
+      <td><a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:user_profile_url' 0 %}".replace('/0/','/'+row.id+'/')>Open</a></td>
+    `;
+    tbody.appendChild(tr);
+  });
+});
+</script>
+{% endblock %}

@@ -1,4 +1,4 @@
-{% extends "accounts/base.html" %}
+{% extends "base.html" %}
 
 {% block page_styles %}
 <style>
@@ -7,76 +7,214 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-content">
-    <div class="d-flex justify-content-between">
-        <div class="input-group w-25">
-            <span class="input-group-text"><i class="fas fa-search"></i></span>
-            <input type="text" class="form-control">
+<div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
+    <div>
+        <h3 class="fw-bold mb-3">Members</h3>
+    </div>
+    <div class="ms-md-auto py-2 py-md-0">
+        <a href="#" class="btn btn-label-info btn-round me-2">Manage</a>
+        <button class="btn btn-primary btn-round ms-auto" data-bs-toggle="modal" data-bs-target="#createMemberModal" id="createAdminUserBtn">Add Member</button>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="basic-datatables" class="display table soft-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in members %}
+                            <tr onclick="window.location={{member.id}}" style="cursor:pointer;">
+                                <td>{{ member.user.get_full_name }}</td>
+                                <td>{{ member.user.email }}/{{ member.phone }}</td>
+                                <td>{{ member.roles }}</td>
+                                <td>{{ member.user.status }}</td>
+                                <td>
+                                    <a href="#" class="btn btn-sm btn-primary">Edit</a>
+                                    <a href="#" class="btn btn-sm btn-danger">Delete</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#addUserModal">Add User</button>
+    </div>
+
+    <div class="card-body">
+        <!-- Modal -->
+        <div class="modal fade" id="createMemberModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title">
+                            <span class="fw-mediumbold"> New Member</span>
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <form id="memberUserForm">
+                            <div class="row">
+
+                                <!-- First Name -->
+                                <div class="col-md-6">
+                                    <div class="form-group form-group-default">
+                                        <label>First Name</label>
+                                        <input id="firstName" type="text" name="firstname" class="form-control"
+                                            placeholder="Enter first name" />
+                                    </div>
+                                </div>
+
+                                <!-- Last Name -->
+                                <div class="col-md-6">
+                                    <div class="form-group form-group-default">
+                                        <label>Last Name</label>
+                                        <input id="lastName" type="text" name="lastname" class="form-control"
+                                            placeholder="Enter last name" />
+                                    </div>
+                                </div>
+
+                                <!-- Email -->
+                                <div class="col-md-6 pe-0">
+                                    <div class="form-group form-group-default">
+                                        <label>Email</label>
+                                        <input id="email" type="text" name="email" class="form-control"
+                                            placeholder="Enter email" />
+                                    </div>
+                                </div>
+
+                                <!-- Phone -->
+                                <div class="col-md-6">
+                                    <div class="form-group form-group-default">
+                                        <label>Phone</label>
+                                        <input id="phone" type="text" name="phone" class="form-control"
+                                            placeholder="Enter phone number" />
+                                    </div>
+                                </div>
+
+                                <!-- User Roles -->
+                                <div class="col-sm-12">
+                                    <div class="form-group form-group-default">
+                                        <label>User Roles</label>
+                                        <select class="form-control" name="user_roles" id="userRolesSelect" multiple>
+                                            {% for role in roles %}
+                                            <option value="{{ role.code }}">{{ role.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="modal-footer border-0">
+                        <button type="submit" form="createCompanyForm" class="btn btn-primary">
+                            Add Company
+                        </button>
+                        <button type="button" class="btn btn-danger" id="closeCompanyModal" data-bs-dismiss="modal">
+                            Close
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
-<!-- Add User Modal -->
-<div class="modal fade" id="addUserModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-    aria-labelledby="staticBackdropLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="staticBackdropLabel">Add New User</h1>
-                <button type="reset" form="createUserForm" class="btn-close" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="createUserForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" for="user_fname">First Name</label>
-                            <input type="text" name="firstname" id="user_fname" class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="user_lname">Last Name(Optional)</label>
-                            <input type="text" name="lastname" id="user_lname" class="form-input">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="user_email">Email Address</label>
-                        <input type="email" name="email" id="user_email" class="form-input" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="user_role_select">User Role</label>
-                        <select class="form-input" name="role" id="user_role_select" required>
-                            <option value="">Select Role</option>
-                            <option value="Academic Teacher">Academic Teacher</option>
-                            <option value="Accountant">Accountant</option>
-                            <option value="Administrator">Administrator</option>
-                            <option value="Director">Director</option>
-                            <option value="Head Teacher">Head Teacher</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Teacher">Teacher</option>
-                        </select>
-                    </div>
-                    <div style="background-color: aqua; color: #000; border-radius: 10px; padding: 5px; display: none;">
-                        <p id="user_create_message" class="m-0 p-2"></p>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="reset" class="btn btn-secondary" data-bs-dismiss="modal"
-                    form="createUserForm">Cancel</button>
-                <button type="submit" class="btn btn-primary" data-bs-dismiss="modal" form="createUserForm"
-                    id="createUserFormSubmit">Create</button>
-            </div>
-        </div>
-    </div>
-</div>
+
 {% endblock %}
 
 {% block page_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
-integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
-crossorigin="anonymous"></script>
+    integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
+    crossorigin="anonymous"></script>
 <script>
-    
+    document.addEventListener('DOMContentLoaded', function () {
+        const adminUserForm = document.getElementById('memberUserForm');
+        const createBtn = document.getElementById('createAdminUserBtn');
+
+        createBtn.addEventListener('click', () => {
+            document.getElementById('adminUserModalTitle').textContent = 'Create Admin User';
+            adminUserForm.reset();
+            document.getElementById('user_id').value = '';
+        });
+
+        adminUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = new FormData(adminUserForm);
+            // collect roles checkboxes (multiple)
+            const roles = [...document.querySelectorAll('.role-checkbox:checked')].map(i => i.value);
+            // append multiple roles
+            form.delete('roles');
+            roles.forEach(r => form.append('roles', r));
+
+            const userId = form.get('user_id');
+            const url = userId ? `{% url 'accounts:admin_user_edit_url' 0 %}`.replace('/0/', '/' + userId + '/') : `{% url 'accounts:admin_user_create_url' %}`;
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCSRF() },
+                body: form
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                location.reload(); // simple approach: reload to refresh table
+            } else {
+                const err = await resp.json();
+                alert(Object.keys(err.errors).join(', '));
+            }
+        });
+
+        // edit buttons
+        document.querySelectorAll('.edit-user-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.dataset.id;
+                // fetch minimal data from the row, populate modal
+                const row = document.getElementById('user-row-' + id);
+                const name = row.children[0].innerText.split(' ');
+                document.querySelector('input[name=first_name]').value = name[0] || '';
+                document.querySelector('input[name=last_name]').value = name.slice(1).join(' ') || '';
+                document.querySelector('input[name=email]').value = row.children[1].innerText || '';
+                document.querySelector('input[name=username]').value = ''; // optional
+                document.getElementById('user_id').value = id;
+                document.getElementById('adminUserModalTitle').textContent = 'Edit Admin User';
+                adminUserModal.show();
+            });
+        });
+
+        // delete buttons
+        document.querySelectorAll('.delete-user-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                const modalEl = document.getElementById('confirmDeleteModal');
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+                const confirmBtn = document.getElementById('confirmDeleteBtn');
+                confirmBtn.onclick = async () => {
+                    const url = `{% url 'accounts:admin_user_delete_url' 0 %}`.replace('/0/', '/' + id + '/');
+                    const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
+                    if (r.ok) {
+                        document.getElementById('user-row-' + id).remove();
+                        modal.hide();
+                    } else {
+                        alert('Delete failed');
+                    }
+                };
+            });
+        });
+
+    });
 </script>
 {% endblock %}

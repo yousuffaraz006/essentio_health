@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h3>User profile</h3>
+<div class="card">
+  <div class="card-body">
+    <h5>{{ user.get_full_name }}</h5>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Phone:</strong> {{ profile.phone }}</p>
+    <p><strong>City:</strong> {{ profile.city }} / {{ profile.state }} / {{ profile.country }}</p>
+    <p><strong>Company:</strong> {% if profile.company %}<a href="{% url 'companies:company_profile_url' profile.company.id %}">{{ profile.company.name }}</a>{% else %}—{% endif %}</p>
+    <!-- placeholder for later many health fields -->
+  </div>
+</div>
+{% endblock %}

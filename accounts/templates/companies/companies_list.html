@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block page_styles %}
+<style>
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
+    <div>
+        <h3 class="fw-bold mb-3">Companies</h3>
+    </div>
+    <div class="ms-md-auto py-2 py-md-0">
+        <a href="#" class="btn btn-label-info btn-round me-2">Manage</a>
+        <button class="btn btn-primary btn-round ms-auto" data-bs-toggle="modal" data-bs-target="#createCompanyModal"
+            class="btn btn-primary btn-round">Add Company</button>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="basic-datatables" class="display table soft-table">
+                        <thead>
+                            <tr>
+                                <th>Company Name</th>
+                                <th>City</th>
+                                <th>State</th>
+                                <th>Active Users</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for company in companies %}
+                            <tr onclick="window.location={{company.id}}" style="cursor:pointer;">
+                                <td>{{ company.name }}</td>
+                                <td>{{ company.city }}</td>
+                                <td>{{ company.state }}</td>
+                                <td>{{ company.active_employees_count }}</td>
+
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Modal -->
+        <div class="modal fade" id="createCompanyModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title">
+                            <span class="fw-mediumbold"> New Company</span>
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <form id="createCompanyForm">
+                            <div class="row">
+
+                                <!-- Company Name -->
+                                <div class="col-sm-12">
+                                    <div class="form-group form-group-default">
+                                        <label>Company Name</label>
+                                        <input id="companyName" type="text" name="name" class="form-control"
+                                            placeholder="Enter company name" />
+                                    </div>
+                                </div>
+
+                                <!-- City -->
+                                <div class="col-md-6 pe-0">
+                                    <div class="form-group form-group-default">
+                                        <label>City</label>
+                                        <input id="city" type="text" name="city" class="form-control"
+                                            placeholder="Enter city" />
+                                    </div>
+                                </div>
+
+                                <!-- State -->
+                                <div class="col-md-6">
+                                    <div class="form-group form-group-default">
+                                        <label>State</label>
+                                        <input id="state" type="text" name="state" class="form-control"
+                                            placeholder="Enter state" />
+                                    </div>
+                                </div>
+
+                                <!-- Country -->
+                                <div class="col-md-6 pe-0">
+                                    <div class="form-group form-group-default">
+                                        <label>Country</label>
+                                        <input id="country" type="text" name="country" class="form-control"
+                                            placeholder="Enter country" />
+                                    </div>
+                                </div>
+
+                                <!-- CEO -->
+                                <div class="col-md-6">
+                                    <div class="form-group form-group-default">
+                                        <label>CEO</label>
+                                        <input id="ceo" type="text" name="ceo" class="form-control"
+                                            placeholder="Enter CEO name" />
+                                    </div>
+                                </div>
+
+                                <!-- Business Size -->
+                                <div class="col-sm-12">
+                                    <div class="form-group form-group-default">
+                                        <label>Business Size</label>
+                                        <input id="businessSize" type="text" name="business_size" class="form-control"
+                                            placeholder="e.g. 1–10, 11–50, 51–200" />
+                                    </div>
+                                </div>
+
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="modal-footer border-0">
+                        <button type="submit" form="createCompanyForm" class="btn btn-primary">
+                            Add Company
+                        </button>
+                        <button type="button" class="btn btn-danger" id="closeCompanyModal" data-bs-dismiss="modal">
+                            Close
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    $(document).ready(function () {
+        $("#basic-datatables").DataTable({});
+
+        $("#multi-filter-select").DataTable({
+            pageLength: 5,
+            initComplete: function () {
+                this.api()
+                    .columns()
+                    .every(function () {
+                        var column = this;
+                        var select = $(
+                            '<select class="form-select"><option value=""></option></select>'
+                        )
+                            .appendTo($(column.footer()).empty())
+                            .on("change", function () {
+                                var val = $.fn.dataTable.util.escapeRegex($(this).val());
+
+                                column
+                                    .search(val ? "^" + val + "$" : "", true, false)
+                                    .draw();
+                            });
+
+                        column
+                            .data()
+                            .unique()
+                            .sort()
+                            .each(function (d, j) {
+                                select.append(
+                                    '<option value="' + d + '">' + d + "</option>"
+                                );
+                            });
+                    });
+            },
+        });
+
+        // Add Row
+        $("#add-row").DataTable({
+            pageLength: 5,
+        });
+
+        var action =
+            '<td> <div class="form-button-action"> <button type="button" data-bs-toggle="tooltip" title="" class="btn btn-link btn-primary btn-lg" data-original-title="Edit Task"> <i class="fa fa-edit"></i> </button> <button type="button" data-bs-toggle="tooltip" title="" class="btn btn-link btn-danger" data-original-title="Remove"> <i class="fa fa-times"></i> </button> </div> </td>';
+
+        $("#addRowButton").click(function () {
+            $("#add-row")
+                .dataTable()
+                .fnAddData([
+                    $("#addName").val(),
+                    $("#addPosition").val(),
+                    $("#addOffice").val(),
+                    action,
+                ]);
+            $("#addRowModal").modal("hide");
+        });
+    });
+</script>
+
+<script>
+    function getCSRF() {
+        return document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        const companyForm = document.getElementById('createCompanyForm');
+        // const companyModal = new bootstrap.Modal(document.getElementById('companyModal'));
+
+        companyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = new FormData(companyForm);
+            const resp = await fetch("{% url 'companies:company_create_url' %}", { method: 'POST', headers: { 'X-CSRFToken': getCSRF() }, body: form });
+            if (resp.ok) {
+                location.reload();
+            } else {
+                const err = await resp.json();
+                alert(Object.keys(err.errors).join(', '));
+            }
+        });
+
+        document.querySelectorAll('.delete-company-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                const modalEl = document.getElementById('confirmDeleteModal');
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+                document.getElementById('confirmDeleteBtn').onclick = async () => {
+                    const url = `{% url 'companies:company_delete_url' 0 %}`.replace('/0/', '/' + id + '/');
+                    const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
+                    if (r.ok) {
+                        modal.hide();
+                        location.reload();
+                    } else alert('Delete failed');
+                };
+            });
+        });
+    });
+</script>
+{% endblock %}
