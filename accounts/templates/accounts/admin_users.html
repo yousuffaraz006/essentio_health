@@ -7,11 +7,76 @@
 {% endblock %}
 
 {% block content %}
+<div class="page-content">
+    <div class="d-flex justify-content-between">
+        <div class="input-group w-25">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control">
+        </div>
+        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#addUserModal">Add User</button>
+    </div>
 
+</div>
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="staticBackdropLabel">Add New User</h1>
+                <button type="reset" form="createUserForm" class="btn-close" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createUserForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="user_fname">First Name</label>
+                            <input type="text" name="firstname" id="user_fname" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="user_lname">Last Name(Optional)</label>
+                            <input type="text" name="lastname" id="user_lname" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="user_email">Email Address</label>
+                        <input type="email" name="email" id="user_email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="user_role_select">User Role</label>
+                        <select class="form-input" name="role" id="user_role_select" required>
+                            <option value="">Select Role</option>
+                            <option value="Academic Teacher">Academic Teacher</option>
+                            <option value="Accountant">Accountant</option>
+                            <option value="Administrator">Administrator</option>
+                            <option value="Director">Director</option>
+                            <option value="Head Teacher">Head Teacher</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Teacher">Teacher</option>
+                        </select>
+                    </div>
+                    <div style="background-color: aqua; color: #000; border-radius: 10px; padding: 5px; display: none;">
+                        <p id="user_create_message" class="m-0 p-2"></p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="reset" class="btn btn-secondary" data-bs-dismiss="modal"
+                    form="createUserForm">Cancel</button>
+                <button type="submit" class="btn btn-primary" data-bs-dismiss="modal" form="createUserForm"
+                    id="createUserFormSubmit">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block page_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
+crossorigin="anonymous"></script>
 <script>
-    console.log("Admin Users Loaded");
+    
 </script>
 {% endblock %}
