@@ -9,11 +9,11 @@
 {% block content %}
 <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
     <div>
-        <h3 class="fw-bold mb-3">Members</h3>
+        <h3 class="fw-bold mb-3">Users</h3>
     </div>
     <div class="ms-md-auto py-2 py-md-0">
         <a href="#" class="btn btn-label-info btn-round me-2">Manage</a>
-        <button class="btn btn-primary btn-round ms-auto" data-bs-toggle="modal" data-bs-target="#memberModal" id="openCreateMemberModalBtn">Add Member</button>
+        <a href="{% url 'accounts:add_user_url' %}" class="btn btn-primary btn-round ms-auto">Add User</a>
     </div>
 </div>
 <div class="row">
@@ -24,39 +24,48 @@
                     <table id="basic-datatables" class="display table soft-table">
                         <thead>
                             <tr>
+                                <th>Added On</th>
+                                <th>Company</th>
                                 <th>Name</th>
-                                <th>Contact</th>
-                                <th>Role</th>
+                                <th>Plan</th>
+                                <th>Location</th>
                                 <th>Status</th>
-                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for member in members %}
+                            {% for user in users %}
                             <tr style="cursor:pointer;">
-                                <td>{{ member.profile.user.get_full_name }}</td>
+                                <td data-order="{{ user.date_joined|date:"Y-m-d" }}">{{ user.date_joined|date:"d M, Y" }}</td>
+                                <td>{% if user.profile.company.name %}
+                                        {{ user.profile.company.name }}
+                                    {% else %}
+                                        <span class="badge bg-secondary">Individual</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ user.profile.user.get_full_name }}
+                                    <div class="text-muted small">{{ user.email }}</div>
+                                </td>
                                 <td>
-                                    <div class="fw-semibold">{{ member.email }}</div>
+                                    <div class="fw-semibold">{{ user.email }}</div>
                                     <div class="text-muted small">
-                                        {% if member.profile.phone %}
-                                        <i class="fa fa-phone me-1"></i>{{ member.profile.phone }}
+                                        {% if user.profile.phone %}
+                                            <i class="fa fa-phone me-1"></i>{{ user.profile.phone }}
                                         {% else %}
-                                        <span class="text-muted">No phone</span>
+                                            <span class="text-muted">No phone</span>
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td>{% if member.profile.roles.exists %}
-                                        {% for role in member.profile.roles.all %}
-                                        <span class="badge bg-secondary">{{ role.name }}</span>
-                                        {% endfor %}
+                                <td>
+                                    {% if user.profile.city or user.profile.state or user.profile.country %}
+                                    <i class="fa fa-map-marker-alt me-1"></i>
+                                    {{ user.profile.city }}{% if user.profile.city and user.profile.state %},{% endif %}
+                                    {{ user.profile.state }}{% if user.profile.state and user.profile.country %},{% endif %}
+                                    {{ user.profile.country }}
                                     {% else %}
-                                        ----
+                                    <span class="text-muted small">No location</span>
                                     {% endif %}
                                 </td>
-                                <td>{% if member.profile.user.is_active %}Active{% else %}Inactive{% endif %}</td>
-                                <td>
-                                    <a data-bs-toggle="modal" data-bs-target="#memberModal" class="btn btn-sm btn-primary edit-member-btn" onclick="event.stopPropagation();" data-user-id="{{ member.id }}">Edit</a>
-                                </td>
+                                <td>{% if user.profile.user.is_active %}Active{% else %}Inactive{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -65,118 +74,6 @@
             </div>
         </div>
     </div>
-
-    <div class="card-body">
-        <!-- Modal -->
-        <div class="modal fade" id="memberModal" tabindex="-1" role="dialog" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header border-0">
-                        <h5 class="modal-title">
-                            <span class="fw-mediumbold" id="memberModalTitle"> New Member</span>
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-
-                    <div class="modal-body">
-                        <form id="memberUserForm">
-                            <input type="hidden" name="userId" id="member_id" value="" />
-                            <div class="row">
-                                <!-- First Name -->
-                                <div class="col-md-6">
-                                    <div class="form-group form-group-default">
-                                        <label>First Name</label>
-                                        <input id="firstName" type="text" name="firstname" class="form-control"
-                                            placeholder="Enter first name" required />
-                                    </div>
-                                </div>
-
-                                <!-- Last Name -->
-                                <div class="col-md-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Last Name</label>
-                                        <input id="lastName" type="text" name="lastname" class="form-control"
-                                            placeholder="Enter last name" required />
-                                    </div>
-                                </div>
-
-                                <!-- Email -->
-                                <div class="col-md-6 pe-0">
-                                    <div class="form-group form-group-default">
-                                        <label>Email</label>
-                                        <input id="email" type="text" name="email" class="form-control"
-                                            placeholder="Enter email" required />
-                                    </div>
-                                </div>
-
-                                <!-- Phone -->
-                                <div class="col-md-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Phone</label>
-                                        <input id="phone" type="text" name="phone" class="form-control"
-                                            placeholder="Enter phone number" required />
-                                    </div>
-                                </div>
-
-                                <!-- User Roles -->
-                                <div class="col-sm-12">
-                                    <div class="form-group form-group-default">
-                                        <label class="mb-2 fw-semibold">Roles (Select multiple)</label>
-
-                                        <div class="row g-2">
-                                        {% for role in roles %}
-                                        <div class="col-md-6">
-                                            <label class="role-item d-flex align-items-center">
-                                            <input
-                                                type="checkbox"
-                                                name="roles"
-                                                value="{{ role.code }}"
-                                                class="role-checkbox-input"
-                                            />
-                                            <span class="role-label mx-1">{{ role.name }}</span>
-                                            </label>
-                                        </div>
-                                        {% endfor %}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- User Status -->
-                                <div class="col-md-12">
-                                    <div class="form-group form-group-default d-flex align-items-center justify-content-between">
-                                        <label class="fw-semibold mb-0">User Status</label>
-
-                                        <div class="form-check d-flex form-switch">
-                                            <label class="form-check-label mx-2 mt-1" for="isActive" id="isActiveLabel">Active</label>
-                                            <input
-                                                class="form-check-input mb-2"
-                                                type="checkbox"
-                                                id="isActive"
-                                                name="is_active"
-                                                checked
-                                                onchange="document.getElementById('isActiveLabel').innerText = this.checked ? 'Active' : 'Inactive'"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="modal-footer border-0">
-                        <button type="submit" form="memberUserForm" id="createMemberButton" class="btn btn-primary">
-                            Create
-                        </button>
-                        <button type="reset" class="btn btn-danger" id="closeCompanyModal" data-bs-dismiss="modal">
-                            Close
-                        </button>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>
 
 {% endblock %}
@@ -184,7 +81,7 @@
 {% block page_scripts %}
 <script>
     $(document).ready(function () {
-        $("#basic-datatables").DataTable({});
+        $("#basic-datatables").DataTable({order: [[0, 'desc']]});
 
         $("#multi-filter-select").DataTable({
             pageLength: 5,

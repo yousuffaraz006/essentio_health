@@ -11,6 +11,7 @@ class Role(models.Model):
     def __str__(self):
         return self.name
 
+
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
 
@@ -28,7 +29,6 @@ class Profile(models.Model):
     )
 
     roles = models.ManyToManyField(Role, blank=True)
-
     def is_admin_user(self):
         return self.roles.exists()
 

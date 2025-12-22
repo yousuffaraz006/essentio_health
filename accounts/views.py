@@ -1,3 +1,4 @@
+from django.db.models import Case, When, Value, IntegerField
 from django.shortcuts import render
 from django.http import JsonResponse
 from .models import *
@@ -271,26 +272,115 @@ def dashboard(request):
     return render(request, 'accounts/dashboard.html')
 
 def admin_users_list_view(request):
-    members = User.objects.filter(profile__roles__isnull=False).distinct()
-    roles = Role.objects.all()
+    members = (
+        User.objects
+        .select_related('profile')
+        .prefetch_related('profile__roles')
+        .filter(profile__roles__isnull=False)
+        .distinct()
+    )
+
+    roles = Role.objects.all().order_by('name')
     return render(request, 'accounts/admin_users.html', {'members': members, 'roles': roles})
 
 @require_POST
 def admin_user_create_view(request):
-    form = AdminUserForm(request.POST)
-    if form.is_valid():
-        user = form.save()
-        return JsonResponse({'success': True, 'id': user.id, 'name': user.get_full_name() or user.username})
-    return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+    try:
+        print("POST data received:", request.POST)
+        data = request.POST
+
+        first_name = data.get('firstname', '').strip()
+        last_name = data.get('lastname', '').strip()
+        email = data.get('email', '').strip()
+        phone = data.get('phone', '').strip()
+        role_codes = data.getlist('roles')
+
+        # ---- validations ----
+        if not first_name or not email:
+            print("First name or email missing")
+            return JsonResponse({'error': 'First name and email are required'}, status=400)
+
+        if User.objects.filter(email=email).exists():
+            print("Email already registered:", email)
+            return JsonResponse({'error': 'Email already registered'}, status=400)
+        
+        if not role_codes:
+            print("No roles provided")
+            return JsonResponse({'error': 'At least one role is required'}, status=400)
+
+        if User.objects.filter(email=email).exists():
+            print("User with this email already exists:", email)
+            return JsonResponse({'error': 'User with this email already exists'}, status=400)
+
+        # ---- username logic ----
+        base_username = email.split('@')[0]
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        # ---- create user ----
+        is_active_str = request.POST.get('is_active', 'True')
+        is_active = is_active_str == 'True'
+        user = User.objects.create(
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            is_active=is_active
+        )
+
+        profile = Profile.objects.create(user=user)
+        profile.phone = phone
+
+        roles = Role.objects.filter(code__in=role_codes)
+        profile.roles.set(roles)
+        profile.save()
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'errors': str(e)}, status=400)
+
+def admin_user_detail_view(request, user_id):
+    user = User.objects.select_related('profile').prefetch_related('profile__roles').get(id=user_id)
+
+    data = {
+        'id': user.id,
+        'firstname': user.first_name,
+        'lastname': user.last_name,
+        'email': user.email,
+        'phone': user.profile.phone,
+        'is_active': user.is_active,
+        'roles': list(user.profile.roles.values_list('code', flat=True)),
+    }
+    return JsonResponse(data)
 
 @require_POST
 def admin_user_edit_view(request, pk):
-    user = get_object_or_404(User, pk=pk)
-    form = AdminUserForm(request.POST, instance=user)
-    if form.is_valid():
-        user = form.save()
+    try:
+        print("POST data received for edit:", request.POST)
+        user = User.objects.select_related('profile').get(id=pk)
+
+        data = request.POST
+        role_codes = data.getlist('roles')
+        is_active_str = request.POST.get('is_active', 'True')
+
+        if not role_codes:
+            return JsonResponse({'error': 'At least one role is required'}, status=400)
+
+        user.first_name = data.get('firstname', '').strip()
+        user.last_name = data.get('lastname', '').strip()
+        user.email = data.get('email', '').strip()
+        user.is_active = is_active_str == 'True'
+        user.save()
+
+        user.profile.phone = data.get('phone', '').strip()
+        roles = Role.objects.filter(code__in=role_codes)
+        user.profile.roles.set(roles)
+        user.profile.save()
         return JsonResponse({'success': True, 'id': user.id})
-    return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'errors': str(e)}, status=400)
 
 @require_POST
 def admin_user_delete_view(request, pk):
@@ -302,3 +392,25 @@ def user_profile_view(request, pk):
     user = get_object_or_404(User, pk=pk)
     profile = getattr(user,'profile',None)
     return render(request, 'accounts/user_profile.html', {'user': user, 'profile': profile})
+
+def clients_list_view(request):
+    users = (
+        User.objects
+        .select_related('profile', 'profile__company')
+        .filter(profile__roles__isnull=True)
+        .exclude(is_superuser=True)
+        .annotate(
+            has_company=Case(
+                When(profile__company__isnull=False, then=Value(0)),
+                When(profile__company__isnull=True, then=Value(1)),
+                output_field=IntegerField(),
+            )
+        )
+        .order_by('has_company')
+        .distinct()
+    )
+    return render(request, 'accounts/users_page.html', {'users': users})
+
+def add_users_page(request):
+    companies = Company.objects.all().order_by('name')
+    return render(request, 'accounts/add_users_page.html', {'companies': companies})
