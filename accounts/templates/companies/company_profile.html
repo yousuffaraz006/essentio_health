@@ -1,35 +1,116 @@
 {% extends "base.html" %}
 {% block content %}
-<h3>Company: {{ company.name }}</h3>
-<p><strong>CEO:</strong> {{ company.ceo }} &nbsp; <strong>Size:</strong> {{ company.size_of_business }}</p>
+<div class="page-header">
+  <h3 class="fw-bold mb-3">{{ company.name }}</h3>
+</div>
+<div class="row">
+  <div class="col-md-12">
+    <div class="overflow-auto">
+      <ul class="nav nav-pills nav-secondary" id="pills-tab" role="tablist">
+        <li class="nav-item">
+          <a
+          class="nav-link active"
+          id="pills-home-tab"
+          data-bs-toggle="pill"
+          href="#personal-details"
+          role="tab"
+          aria-controls="pills-home"
+          aria-selected="true"
+          >Personal Details</a
+          >
+        </li>
+        <li class="nav-item">
+          <a
+          class="nav-link"
+          id="pills-profile-tab"
+          data-bs-toggle="pill"
+          href="#employees-details"
+          role="tab"
+          aria-controls="pills-profile"
+          aria-selected="false"
+          >Users Details</a
+          >
+        </li>
+      </ul>
+    </div>
 
-<h5>Employees</h5>
-<table id="companyEmployeesTable" class="table">
-  <thead><tr><th>First</th><th>Last</th><th>Email</th><th>Phone</th><th>City</th><th>Actions</th></tr></thead>
-  <tbody></tbody>
-</table>
+    <div class="card">
+      <div class="card-body">
+        <div class="tab-content mt-2 mb-3" id="pills-tabContent">
+          <div
+            class="tab-pane fade show active"
+            id="personal-details"
+            role="tabpanel"
+            aria-labelledby="pills-home-tab"
+          >
+            <p class="mb-2">
+              <strong class="d-block d-sm-inline">CEO:</strong> {% if company.ceo %}{{ company.ceo }}{% else %}-----{% endif %}
+            </p>
+            <p class="mb-2">
+              <strong class="d-block d-sm-inline">Size:</strong> {% if company.size %}{{ company.size }}{% else %}-----{% endif %}
+            </p>
+            <p class="mb-2">
+              <strong class="d-block d-sm-inline">Location:</strong>
+              {% if company.city or company.state or company.country %}
+                {{ company.city }}{% if company.city and company.state %},{% endif %}
+                {{ company.state }}{% if company.state and company.country %},{% endif %}
+                {{ company.country }}
+              {% else %}
+                -----
+              {% endif %}
+            </p>
+            <p class="mb-2">
+              <strong class="d-block d-sm-inline">Notes:</strong> {% if company.notes %}{{ company.notes }}{% else %}-----{% endif %}
+            </p>
+          </div>
+          <div
+            class="tab-pane fade"
+            id="employees-details"
+            role="tabpanel"
+            aria-labelledby="pills-contact-tab"
+          >
+            <div class="table-responsive">
+              <table class="basic-datatables display table soft-table">
+                <thead>
+                  <tr>
+                    <th>First</th>
+                    <th>Last</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>City</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for user in users %}
+                  <tr>
+                    <td>{{ user.first_name }}</td>
+                    <td>{{ user.last_name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{% if user.client_profile.phone %}{{ user.client_profile.phone }}{% else %}-----{% endif %}</td>
+                    <td>
+                      {% if user.client_profile.city or user.client_profile.state or user.client_profile.country %}
+                      {{ user.client_profile.city }}{% if user.client_profile.city and user.client_profile.state %},{% endif %}
+                      {{ user.client_profile.state }}{% if user.client_profile.state and user.client_profile.country %},{% endif %}
+                      {{ user.client_profile.country }}
+                      {% else %}
+                      -----
+                      {% endif %}
+                    </td>
+                    <td>
+                      <a href="{% url 'accounts:user_profile_url' user.id %}" class="btn btn-sm btn-primary">View</a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endblock %} {% block page_scripts %}
+    <script>
 
-{% endblock %}
-
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const url = `{% url 'companies:company_employees_json_url' company.id %}`;
-  const r = await fetch(url);
-  const data = await r.json();
-  const tbody = document.querySelector('#companyEmployeesTable tbody');
-  data.data.forEach(row => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${row.first_name}</td>
-      <td>${row.last_name}</td>
-      <td>${row.email}</td>
-      <td>${row.phone}</td>
-      <td>${row.city}</td>
-      <td><a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:user_profile_url' 0 %}".replace('/0/','/'+row.id+'/')>Open</a></td>
-    `;
-    tbody.appendChild(tr);
-  });
-});
-</script>
-{% endblock %}
+    </script>
+    {% endblock %}

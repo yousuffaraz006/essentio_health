@@ -21,7 +21,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="basic-datatables" class="display table soft-table">
+                    <table class="basic-datatables display table soft-table">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -34,26 +34,26 @@
                         <tbody>
                             {% for member in members %}
                             <tr style="cursor:pointer;">
-                                <td>{{ member.profile.user.get_full_name }}</td>
+                                <td>{{ member.member_profile.user.get_full_name }}</td>
                                 <td>
                                     <div class="fw-semibold">{{ member.email }}</div>
                                     <div class="text-muted small">
-                                        {% if member.profile.phone %}
-                                        <i class="fa fa-phone me-1"></i>{{ member.profile.phone }}
+                                        {% if member.member_profile.phone %}
+                                        <i class="fa fa-phone me-1"></i>{{ member.member_profile.phone }}
                                         {% else %}
                                         <span class="text-muted">No phone</span>
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td>{% if member.profile.roles.exists %}
-                                        {% for role in member.profile.roles.all %}
+                                <td>{% if member.member_profile.roles.exists %}
+                                        {% for role in member.member_profile.roles.all %}
                                         <span class="badge bg-secondary">{{ role.name }}</span>
                                         {% endfor %}
                                     {% else %}
                                         ----
                                     {% endif %}
                                 </td>
-                                <td>{% if member.profile.user.is_active %}Active{% else %}Inactive{% endif %}</td>
+                                <td>{% if member.member_profile.user.is_active %}Active{% else %}Inactive{% endif %}</td>
                                 <td>
                                     <a data-bs-toggle="modal" data-bs-target="#memberModal" class="btn btn-sm btn-primary edit-member-btn" onclick="event.stopPropagation();" data-user-id="{{ member.id }}">Edit</a>
                                 </td>
@@ -101,7 +101,7 @@
                                 </div>
 
                                 <!-- Email -->
-                                <div class="col-md-6 pe-0">
+                                <div class="col-md-6">
                                     <div class="form-group form-group-default">
                                         <label>Email</label>
                                         <input id="email" type="text" name="email" class="form-control"
@@ -183,61 +183,7 @@
 
 {% block page_scripts %}
 <script>
-    $(document).ready(function () {
-        $("#basic-datatables").DataTable({});
-
-        $("#multi-filter-select").DataTable({
-            pageLength: 5,
-            initComplete: function () {
-                this.api()
-                    .columns()
-                    .every(function () {
-                        var column = this;
-                        var select = $(
-                            '<select class="form-select"><option value=""></option></select>'
-                        )
-                            .appendTo($(column.footer()).empty())
-                            .on("change", function () {
-                                var val = $.fn.dataTable.util.escapeRegex($(this).val());
-
-                                column
-                                    .search(val ? "^" + val + "$" : "", true, false)
-                                    .draw();
-                            });
-
-                        column
-                            .data()
-                            .unique()
-                            .sort()
-                            .each(function (d, j) {
-                                select.append(
-                                    '<option value="' + d + '">' + d + "</option>"
-                                );
-                            });
-                    });
-            },
-        });
-
-        // Add Row
-        $("#add-row").DataTable({
-            pageLength: 5,
-        });
-
-        var action =
-            '<td> <div class="form-button-action"> <button type="button" data-bs-toggle="tooltip" title="" class="btn btn-link btn-primary btn-lg" data-original-title="Edit Task"> <i class="fa fa-edit"></i> </button> <button type="button" data-bs-toggle="tooltip" title="" class="btn btn-link btn-danger" data-original-title="Remove"> <i class="fa fa-times"></i> </button> </div> </td>';
-
-        $("#addRowButton").click(function () {
-            $("#add-row")
-                .dataTable()
-                .fnAddData([
-                    $("#addName").val(),
-                    $("#addPosition").val(),
-                    $("#addOffice").val(),
-                    action,
-                ]);
-            $("#addRowModal").modal("hide");
-        });
-    });
+    
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -315,28 +261,6 @@
                 document.querySelector('#memberModalTitle').innerText = 'Edit Member';
             });
         });
-
-        // delete buttons
-        document.querySelectorAll('.delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = btn.dataset.id;
-                const modalEl = document.getElementById('confirmDeleteModal');
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
-                const confirmBtn = document.getElementById('confirmDeleteBtn');
-                confirmBtn.onclick = async () => {
-                    const url = `{% url 'accounts:admin_user_delete_url' 0 %}`.replace('/0/', '/' + id + '/');
-                    const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
-                    if (r.ok) {
-                        document.getElementById('user-row-' + id).remove();
-                        modal.hide();
-                    } else {
-                        alert('Delete failed');
-                    }
-                };
-            });
-        });
-
     });
 </script>
 {% endblock %}

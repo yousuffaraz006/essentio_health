@@ -21,7 +21,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="basic-datatables" class="display table soft-table">
+                    <table class="basic-datatables display table soft-table">
                         <thead>
                             <tr>
                                 <th>Added On</th>
@@ -34,38 +34,30 @@
                         </thead>
                         <tbody>
                             {% for user in users %}
-                            <tr style="cursor:pointer;">
+                            <tr onclick="window.location.href='{% url 'accounts:user_profile_url' user.id %}'" style="cursor:pointer;">
                                 <td data-order="{{ user.date_joined|date:"Y-m-d" }}">{{ user.date_joined|date:"d M, Y" }}</td>
-                                <td>{% if user.profile.company.name %}
-                                        {{ user.profile.company.name }}
+                                <td>{% if user.client_profile.company.name %}
+                                        {{ user.client_profile.company.name }}
                                     {% else %}
                                         <span class="badge bg-secondary">Individual</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ user.profile.user.get_full_name }}
+                                <td>{{ user.client_profile.user.get_full_name }}
                                     <div class="text-muted small">{{ user.email }}</div>
                                 </td>
                                 <td>
-                                    <div class="fw-semibold">{{ user.email }}</div>
-                                    <div class="text-muted small">
-                                        {% if user.profile.phone %}
-                                            <i class="fa fa-phone me-1"></i>{{ user.profile.phone }}
-                                        {% else %}
-                                            <span class="text-muted">No phone</span>
-                                        {% endif %}
-                                    </div>
+                                    {{ user.client_profile.plan }}
                                 </td>
                                 <td>
-                                    {% if user.profile.city or user.profile.state or user.profile.country %}
-                                    <i class="fa fa-map-marker-alt me-1"></i>
-                                    {{ user.profile.city }}{% if user.profile.city and user.profile.state %},{% endif %}
-                                    {{ user.profile.state }}{% if user.profile.state and user.profile.country %},{% endif %}
-                                    {{ user.profile.country }}
+                                    {% if user.client_profile.city or user.client_profile.state or user.client_profile.country %}
+                                    {{ user.client_profile.city }}{% if user.client_profile.city and user.client_profile.state %},{% endif %}
+                                    {{ user.client_profile.state }}{% if user.client_profile.state and user.client_profile.country %},{% endif %}
+                                    {{ user.client_profile.country }}
                                     {% else %}
                                     <span class="text-muted small">No location</span>
                                     {% endif %}
                                 </td>
-                                <td>{% if user.profile.user.is_active %}Active{% else %}Inactive{% endif %}</td>
+                                <td>{% if user.client_profile.user.is_active %}Active{% else %}Inactive{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -79,63 +71,6 @@
 {% endblock %}
 
 {% block page_scripts %}
-<script>
-    $(document).ready(function () {
-        $("#basic-datatables").DataTable({order: [[0, 'desc']]});
-
-        $("#multi-filter-select").DataTable({
-            pageLength: 5,
-            initComplete: function () {
-                this.api()
-                    .columns()
-                    .every(function () {
-                        var column = this;
-                        var select = $(
-                            '<select class="form-select"><option value=""></option></select>'
-                        )
-                            .appendTo($(column.footer()).empty())
-                            .on("change", function () {
-                                var val = $.fn.dataTable.util.escapeRegex($(this).val());
-
-                                column
-                                    .search(val ? "^" + val + "$" : "", true, false)
-                                    .draw();
-                            });
-
-                        column
-                            .data()
-                            .unique()
-                            .sort()
-                            .each(function (d, j) {
-                                select.append(
-                                    '<option value="' + d + '">' + d + "</option>"
-                                );
-                            });
-                    });
-            },
-        });
-
-        // Add Row
-        $("#add-row").DataTable({
-            pageLength: 5,
-        });
-
-        var action =
-            '<td> <div class="form-button-action"> <button type="button" data-bs-toggle="tooltip" title="" class="btn btn-link btn-primary btn-lg" data-original-title="Edit Task"> <i class="fa fa-edit"></i> </button> <button type="button" data-bs-toggle="tooltip" title="" class="btn btn-link btn-danger" data-original-title="Remove"> <i class="fa fa-times"></i> </button> </div> </td>';
-
-        $("#addRowButton").click(function () {
-            $("#add-row")
-                .dataTable()
-                .fnAddData([
-                    $("#addName").val(),
-                    $("#addPosition").val(),
-                    $("#addOffice").val(),
-                    action,
-                ]);
-            $("#addRowModal").modal("hide");
-        });
-    });
-</script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const adminUserForm = document.getElementById('memberUserForm');

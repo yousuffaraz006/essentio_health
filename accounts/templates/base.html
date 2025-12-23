@@ -146,13 +146,13 @@
                             </a>
                         </li>
                         <li
-                            class="nav-item {% if request.resolver_match.url_name == 'companies_list_url' %}active{% endif %}">
+                            class="nav-item {% if request.resolver_match.url_name == 'companies_list_url' or request.resolver_match.url_name == 'company_profile_url'   %}active{% endif %}">
                             <a href="{% url 'companies:companies_list_url' %}">
                                 <i class="fas fa-file"></i>
                                 <p>Companies</p>
                             </a>
                         </li>
-                        <li class="nav-item {% if request.resolver_match.url_name == 'clients_list_url' %}active{% endif %}">
+                        <li class="nav-item {% if request.resolver_match.url_name == 'clients_list_url' or request.resolver_match.url_name == 'user_profile_url' or request.resolver_match.url_name == 'add_user_url' %}active{% endif %}">
                             <a href="{% url 'accounts:clients_list_url' %}">
                                 <i class="fas fa-desktop"></i>
                                 <p>Users</p>
@@ -542,28 +542,6 @@
                     {% block content %} {% endblock %}
                 </div>
             </div>
-            <footer class="footer">
-                <div class="container-fluid d-flex justify-content-between">
-                    <nav class="pull-left">
-                        <ul class="nav">
-                            <li class="nav-item">
-                                <a class="nav-link" href="#"> Help </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#"> Licenses </a>
-                            </li>
-                        </ul>
-                    </nav>
-                    <div class="copyright">
-                        2024, made with <i class="fa fa-heart heart text-danger"></i> by
-                        <a href="#">Yousuf</a>
-                    </div>
-                    <div>
-                        Distributed by
-                        <a target="_blank" href="#">Yousuf</a>.
-                    </div>
-                </div>
-            </footer>
         </div>
     </div>
     {% if messages %}
@@ -582,9 +560,64 @@
     <script src="{% static 'assets/js/plugin/datatables/datatables.min.js' %}"></script>
     <!-- Kaiadmin JS -->
     <script src="{% static 'assets/js/kaiadmin.min.js' %}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
-        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
+    <script>
+        $(document).ready(function () {
+            $(".basic-datatables").DataTable({order: [[0, 'desc']]});
+
+            $("#multi-filter-select").DataTable({
+                pageLength: 5,
+                initComplete: function () {
+                    this.api()
+                        .columns()
+                        .every(function () {
+                            var column = this;
+                            var select = $(
+                                '<select class="form-select"><option value=""></option></select>'
+                            )
+                                .appendTo($(column.footer()).empty())
+                                .on("change", function () {
+                                    var val = $.fn.dataTable.util.escapeRegex($(this).val());
+
+                                    column
+                                        .search(val ? "^" + val + "$" : "", true, false)
+                                        .draw();
+                                });
+
+                            column
+                                .data()
+                                .unique()
+                                .sort()
+                                .each(function (d, j) {
+                                    select.append(
+                                        '<option value="' + d + '">' + d + "</option>"
+                                    );
+                                });
+                        });
+                },
+            });
+
+            // Add Row
+            $("#add-row").DataTable({
+                pageLength: 5,
+            });
+
+            var action =
+                '<td> <div class="form-button-action"> <button type="button" data-bs-toggle="tooltip" title="" class="btn btn-link btn-primary btn-lg" data-original-title="Edit Task"> <i class="fa fa-edit"></i> </button> <button type="button" data-bs-toggle="tooltip" title="" class="btn btn-link btn-danger" data-original-title="Remove"> <i class="fa fa-times"></i> </button> </div> </td>';
+
+            $("#addRowButton").click(function () {
+                $("#add-row")
+                    .dataTable()
+                    .fnAddData([
+                        $("#addName").val(),
+                        $("#addPosition").val(),
+                        $("#addOffice").val(),
+                        action,
+                    ]);
+                $("#addRowModal").modal("hide");
+            });
+        });
+    </script>
     {% block page_scripts %} {% endblock %}
 </body>
 

@@ -45,7 +45,8 @@ def company_delete_view(request, pk):
 
 def company_profile_view(request, pk):
     company = get_object_or_404(Company, pk=pk)
-    return render(request, 'companies/company_profile.html', {'company': company})
+    users = User.objects.filter(client_profile__company=company).select_related('client_profile')
+    return render(request, 'companies/company_profile.html', {'company': company, 'users': users})
 
 def company_employees_json(request, pk):
     company = get_object_or_404(Company, pk=pk)

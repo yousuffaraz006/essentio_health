@@ -7,7 +7,7 @@ class Company(models.Model):
     state = models.CharField(max_length=120, blank=True)
     country = models.CharField(max_length=120, blank=True)
     ceo = models.CharField(max_length=255, blank=True)
-    size_of_business = models.PositiveIntegerField(null=True, blank=True)
+    size = models.PositiveIntegerField(null=True, blank=True)
     notes = models.TextField(blank=True)
 
     def __str__(self):

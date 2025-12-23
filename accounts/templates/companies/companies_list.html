@@ -22,7 +22,7 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table id="basic-datatables" class="display table soft-table">
+                    <table class="basic-datatables display table soft-table">
                         <thead>
                             <tr>
                                 <th>Company Name</th>
@@ -65,7 +65,7 @@
                             <div class="row">
 
                                 <!-- Company Name -->
-                                <div class="col-sm-12">
+                                <div class="col-sm-6">
                                     <div class="form-group form-group-default">
                                         <label>Company Name</label>
                                         <input id="companyName" type="text" name="name" class="form-control"
@@ -73,8 +73,26 @@
                                     </div>
                                 </div>
 
+                                <!-- CEO -->
+                                <div class="col-md-6">
+                                    <div class="form-group form-group-default">
+                                        <label>CEO</label>
+                                        <input id="ceo" type="text" name="ceo" class="form-control"
+                                            placeholder="Enter CEO name" />
+                                    </div>
+                                </div>
+
+                                <!-- Business Size -->
+                                <div class="col-sm-6">
+                                    <div class="form-group form-group-default">
+                                        <label>Business Size</label>
+                                        <input id="businessSize" type="text" name="business_size" class="form-control"
+                                            placeholder="e.g. 100, 250, 500" />
+                                    </div>
+                                </div>
+
                                 <!-- City -->
-                                <div class="col-md-6 pe-0">
+                                <div class="col-md-6">
                                     <div class="form-group form-group-default">
                                         <label>City</label>
                                         <input id="city" type="text" name="city" class="form-control"
@@ -92,7 +110,7 @@
                                 </div>
 
                                 <!-- Country -->
-                                <div class="col-md-6 pe-0">
+                                <div class="col-md-6">
                                     <div class="form-group form-group-default">
                                         <label>Country</label>
                                         <input id="country" type="text" name="country" class="form-control"
@@ -100,21 +118,12 @@
                                     </div>
                                 </div>
 
-                                <!-- CEO -->
-                                <div class="col-md-6">
-                                    <div class="form-group form-group-default">
-                                        <label>CEO</label>
-                                        <input id="ceo" type="text" name="ceo" class="form-control"
-                                            placeholder="Enter CEO name" />
-                                    </div>
-                                </div>
-
-                                <!-- Business Size -->
+                                <!-- Notes -->
                                 <div class="col-sm-12">
                                     <div class="form-group form-group-default">
-                                        <label>Business Size</label>
-                                        <input id="businessSize" type="text" name="business_size" class="form-control"
-                                            placeholder="e.g. 1–10, 11–50, 51–200" />
+                                        <label>Notes</label>
+                                        <input id="notes" type="text" name="notes" class="form-control"
+                                            placeholder="Enter notes" />
                                     </div>
                                 </div>
 
@@ -140,63 +149,6 @@
 {% endblock %}
 
 {% block page_scripts %}
-<script>
-    $(document).ready(function () {
-        $("#basic-datatables").DataTable({});
-
-        $("#multi-filter-select").DataTable({
-            pageLength: 5,
-            initComplete: function () {
-                this.api()
-                    .columns()
-                    .every(function () {
-                        var column = this;
-                        var select = $(
-                            '<select class="form-select"><option value=""></option></select>'
-                        )
-                            .appendTo($(column.footer()).empty())
-                            .on("change", function () {
-                                var val = $.fn.dataTable.util.escapeRegex($(this).val());
-
-                                column
-                                    .search(val ? "^" + val + "$" : "", true, false)
-                                    .draw();
-                            });
-
-                        column
-                            .data()
-                            .unique()
-                            .sort()
-                            .each(function (d, j) {
-                                select.append(
-                                    '<option value="' + d + '">' + d + "</option>"
-                                );
-                            });
-                    });
-            },
-        });
-
-        // Add Row
-        $("#add-row").DataTable({
-            pageLength: 5,
-        });
-
-        var action =
-            '<td> <div class="form-button-action"> <button type="button" data-bs-toggle="tooltip" title="" class="btn btn-link btn-primary btn-lg" data-original-title="Edit Task"> <i class="fa fa-edit"></i> </button> <button type="button" data-bs-toggle="tooltip" title="" class="btn btn-link btn-danger" data-original-title="Remove"> <i class="fa fa-times"></i> </button> </div> </td>';
-
-        $("#addRowButton").click(function () {
-            $("#add-row")
-                .dataTable()
-                .fnAddData([
-                    $("#addName").val(),
-                    $("#addPosition").val(),
-                    $("#addOffice").val(),
-                    action,
-                ]);
-            $("#addRowModal").modal("hide");
-        });
-    });
-</script>
 
 <script>
     function getCSRF() {

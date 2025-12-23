@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block page_styles %}
 <style>
-  
+
 </style>
 {% endblock %}
 
@@ -79,7 +79,7 @@
             </div>
 
             <!-- Email -->
-            <div class="col-md-6 pe-0">
+            <div class="col-md-6">
               <div class="form-group form-group-default">
                 <label>Email</label>
                 <input
@@ -103,6 +103,51 @@
                   name="phone"
                   class="form-control"
                   placeholder="Enter phone number"
+                  required
+                />
+              </div>
+            </div>
+
+            <!-- City -->
+            <div class="col-md-4">
+              <div class="form-group form-group-default">
+                <label>City</label>
+                <input
+                  id="city"
+                  type="text"
+                  name="city"
+                  class="form-control"
+                  placeholder="Enter city"
+                  required
+                />
+              </div>
+            </div>
+
+            <!-- State -->
+            <div class="col-md-4">
+              <div class="form-group form-group-default">
+                <label>State</label>
+                <input
+                  id="state"
+                  type="text"
+                  name="state"
+                  class="form-control"
+                  placeholder="Enter state"
+                  required
+                />
+              </div>
+            </div>
+
+            <!-- Country -->
+            <div class="col-md-4">
+              <div class="form-group form-group-default">
+                <label>Country</label>
+                <input
+                  id="country"
+                  type="text"
+                  name="country"
+                  class="form-control"
+                  placeholder="Enter country"
                   required
                 />
               </div>
@@ -139,7 +184,7 @@
         <div class="modal-footer border-0">
           <button
             type="submit"
-            form="createCompanyForm"
+            form="createUserForm"
             class="btn btn-primary"
           >
             Add
