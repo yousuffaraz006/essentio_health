@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Profile, Role, Company
+from .models import *
 
 class AdminUserForm(forms.ModelForm):
     roles = forms.ModelMultipleChoiceField(queryset=Role.objects.all(), required=False, widget=forms.CheckboxSelectMultiple)
@@ -16,7 +16,7 @@ class AdminUserForm(forms.ModelForm):
 
     def save(self, commit=True):
         user = super().save(commit=commit)
-        profile, _ = Profile.objects.get_or_create(user=user)
+        profile, _ = MemberProfile.objects.get_or_create(user=user)
         profile.phone = self.cleaned_data.get('phone','')
         profile.city = self.cleaned_data.get('city','')
         profile.state = self.cleaned_data.get('state','')

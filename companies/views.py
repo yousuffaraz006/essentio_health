@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from .forms import CompanyForm
 from .models import Company
-from accounts.models import Profile
+from accounts.models import *
 from django.views.decorators.http import require_POST
 
 def companies_list_view(request):
@@ -15,7 +15,7 @@ def companies_list_view(request):
             'name': company.name,
             'city': company.city,
             'state': company.state,
-            'active_employees_count': Profile.objects.filter(company=company, user__is_active=True).count(),
+            'active_employees_count': ClientProfile.objects.filter(company=company, user__is_active=True).count(),
         })
     return render(request, 'companies/companies_list.html', {'companies': data})
 
@@ -49,7 +49,7 @@ def company_profile_view(request, pk):
 
 def company_employees_json(request, pk):
     company = get_object_or_404(Company, pk=pk)
-    qs = Profile.objects.filter(company=company).select_related('user')
+    qs = ClientProfile.objects.filter(company=company).select_related('user')
     data = []
     for p in qs:
         data.append({

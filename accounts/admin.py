@@ -7,4 +7,5 @@ from .models import *
 # admin.site.register(ClientUser)
 
 admin.site.register(Role)
-admin.site.register(Profile)
+admin.site.register(MemberProfile)
+admin.site.register(ClientProfile)

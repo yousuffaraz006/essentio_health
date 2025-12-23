@@ -274,9 +274,9 @@ def dashboard(request):
 def admin_users_list_view(request):
     members = (
         User.objects
-        .select_related('profile')
-        .prefetch_related('profile__roles')
-        .filter(profile__roles__isnull=False)
+        .select_related('member_profile')
+        .prefetch_related('member_profile__roles')
+        .filter(member_profile__roles__isnull=False)
         .distinct()
     )
 
@@ -331,7 +331,7 @@ def admin_user_create_view(request):
             is_active=is_active
         )
 
-        profile = Profile.objects.create(user=user)
+        profile = MemberProfile.objects.create(user=user)
         profile.phone = phone
 
         roles = Role.objects.filter(code__in=role_codes)
@@ -382,12 +382,6 @@ def admin_user_edit_view(request, pk):
     except Exception as e:
         return JsonResponse({'success': False, 'errors': str(e)}, status=400)
 
-@require_POST
-def admin_user_delete_view(request, pk):
-    user = get_object_or_404(User, pk=pk)
-    user.delete()
-    return JsonResponse({'success': True})
-
 def user_profile_view(request, pk):
     user = get_object_or_404(User, pk=pk)
     profile = getattr(user,'profile',None)
@@ -396,13 +390,12 @@ def user_profile_view(request, pk):
 def clients_list_view(request):
     users = (
         User.objects
-        .select_related('profile', 'profile__company')
-        .filter(profile__roles__isnull=True)
+        .select_related('client_profile', 'client_profile__company')
         .exclude(is_superuser=True)
         .annotate(
             has_company=Case(
-                When(profile__company__isnull=False, then=Value(0)),
-                When(profile__company__isnull=True, then=Value(1)),
+                When(client_profile__company__isnull=False, then=Value(0)),
+                When(client_profile__company__isnull=True, then=Value(1)),
                 output_field=IntegerField(),
             )
         )

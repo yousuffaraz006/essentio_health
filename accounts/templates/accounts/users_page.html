@@ -212,28 +212,6 @@
                 document.querySelector('#memberModalTitle').innerText = 'Edit Member';
             });
         });
-
-        // delete buttons
-        document.querySelectorAll('.delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = btn.dataset.id;
-                const modalEl = document.getElementById('confirmDeleteModal');
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
-                const confirmBtn = document.getElementById('confirmDeleteBtn');
-                confirmBtn.onclick = async () => {
-                    const url = `{% url 'accounts:admin_user_delete_url' 0 %}`.replace('/0/', '/' + id + '/');
-                    const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
-                    if (r.ok) {
-                        document.getElementById('user-row-' + id).remove();
-                        modal.hide();
-                    } else {
-                        alert('Delete failed');
-                    }
-                };
-            });
-        });
-
     });
 </script>
 {% endblock %}
