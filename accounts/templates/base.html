@@ -146,8 +146,8 @@
                             </a>
                         </li>
                         <li
-                            class="nav-item {% if request.resolver_match.url_name == 'companies_list_url' or request.resolver_match.url_name == 'company_profile_url'   %}active{% endif %}">
-                            <a href="{% url 'companies:companies_list_url' %}">
+                            class="nav-item {% if request.resolver_match.url_name == 'companies_page_url' or request.resolver_match.url_name == 'company_profile_url'   %}active{% endif %}">
+                            <a href="{% url 'companies:companies_page_url' %}">
                                 <i class="fas fa-file"></i>
                                 <p>Companies</p>
                             </a>

@@ -13,7 +13,7 @@
     </div>
     <div class="ms-md-auto py-2 py-md-0">
         <a href="#" class="btn btn-label-info btn-round me-2">Manage</a>
-        <a href="{% url 'accounts:add_user_url' %}" class="btn btn-primary btn-round ms-auto">Add User</a>
+        <a href="{% url 'accounts:add_user_url' %}" class="btn btn-primary btn-round ms-auto" id="openAddUserPage">Add User</a>
     </div>
 </div>
 <div class="row">
@@ -72,81 +72,6 @@
 
 {% block page_scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const adminUserForm = document.getElementById('memberUserForm');
-        const createBtn = document.getElementById('openCreateMemberModalBtn');
-
-        createBtn.addEventListener('click', () => {
-            document.getElementById('memberModalTitle').textContent = 'Create New Member';
-            adminUserForm.reset();
-            document.getElementById('member_id').value = '';
-            document.getElementById('createMemberButton').innerText = 'Create';
-        });
-
-        adminUserForm.addEventListener('submit', async (e) => {
-            console.log('Submitting form');
-            e.preventDefault();
-            const form = new FormData(adminUserForm);
-            // collect roles checkboxes (multiple)
-            const roles = [...document.querySelectorAll('.role-checkbox-input:checked')].map(i => i.value);
-            console.log('Selected roles:', roles);
-            // append multiple roles
-            form.delete('roles');
-            roles.forEach(r => form.append('roles', r));
-            console.log('Form data:', [...form.entries()]);
-            // is_active → send explicit boolean string
-            const isActive = document.getElementById('isActive').checked;
-            form.delete('is_active');
-            form.append('is_active', isActive ? 'True' : 'False');
-            const userId = form.get('userId');
-            const url = userId ? `{% url 'accounts:admin_user_edit_url' 0 %}`.replace('/0/', '/' + userId + '/') : `{% url 'accounts:admin_user_create_url' %}`;
-            const resp = await fetch(url, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': getCSRF() },
-                body: form
-            });
-            console.log('Response:', resp);
-            if (resp.ok) {
-                const data = await resp.json();
-                location.reload(); // simple approach: reload to refresh table
-            } else {
-                const err = await resp.json();
-                console.log(err.error || 'Something went wrong');
-            }
-        });
-
-        // edit buttons
-        document.querySelectorAll('.edit-member-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const userId = btn.dataset.userId;
-
-                const resp = await fetch(`/admin-users/${userId}/detail/`);
-                const data = await resp.json();
-
-                // Fill fields
-                document.getElementById('createMemberButton').innerText = 'Save';
-                document.getElementById('member_id').value = data.id;
-                document.getElementById('firstName').value = data.firstname;
-                document.getElementById('lastName').value = data.lastname;
-                document.getElementById('email').value = data.email;
-                document.getElementById('phone').value = data.phone || '';
-                document.getElementById('isActive').checked = data.is_active;
-                document.getElementById('isActiveLabel').innerText = data.is_active ? 'Active' : 'Inactive';
-                // Clear all roles first
-                document.querySelectorAll('input[name="roles"]').forEach(cb => {
-                cb.checked = false;
-                });
-
-                // Check assigned roles
-                data.roles.forEach(roleCode => {
-                const cb = document.querySelector(`input[name="roles"][value="${roleCode}"]`);
-                if (cb) cb.checked = true;
-                });
-
-                // Update modal title
-                document.querySelector('#memberModalTitle').innerText = 'Edit Member';
-            });
-        });
-    });
+    
 </script>
 {% endblock %}

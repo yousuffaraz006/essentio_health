@@ -21,29 +21,49 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-body">
+                <div class="row mb-3 g-2 justify-content-between">
+                    <!-- Created Before -->
+                    <div class="col-md-3 d-flex flex-column">
+                        <label class="form-label mb-1">Created Before</label>
+                        <input type="date" id="createdBefore" class="form-control" />
+                    </div>
+
+                    <!-- Search -->
+                    <div class="col-md-4">
+                        <label class="form-label mb-1">Search</label>
+                        <input
+                        type="text"
+                        id="companySearch"
+                        class="form-control"
+                        placeholder="Search companies..."
+                        />
+                    </div>
+
+                    <!-- Created After -->
+                    <div class="col-md-3 d-flex flex-column">
+                        <label class="form-label mb-1">Created After</label>
+                        <input type="date" id="createdAfter" class="form-control" />
+                    </div>
+                </div>
                 <div class="table-responsive">
-                    <table class="basic-datatables display table soft-table">
+                    <table class="display table soft-table">
                         <thead>
                             <tr>
+                                <th>Added On</th>
                                 <th>Company Name</th>
                                 <th>City</th>
                                 <th>State</th>
                                 <th>Active Users</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for company in companies %}
-                            <tr onclick="window.location={{company.id}}" style="cursor:pointer;">
-                                <td>{{ company.name }}</td>
-                                <td>{{ company.city }}</td>
-                                <td>{{ company.state }}</td>
-                                <td>{{ company.active_employees_count }}</td>
-
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+                        <tbody id="companiesTableBody"></tbody>
                     </table>
                 </div>
+                <nav class="mt-3">
+                    <ul class="pagination justify-content-end mb-0" id="companiesPagination">
+                        <!-- JS will inject buttons here -->
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -151,12 +171,6 @@
 {% block page_scripts %}
 
 <script>
-    function getCSRF() {
-        return document.cookie
-            .split('; ')
-            .find(row => row.startsWith('csrftoken='))
-            ?.split('=')[1];
-    }
     document.addEventListener('DOMContentLoaded', function () {
         const companyForm = document.getElementById('createCompanyForm');
         // const companyModal = new bootstrap.Modal(document.getElementById('companyModal'));
@@ -172,23 +186,113 @@
                 alert(Object.keys(err.errors).join(', '));
             }
         });
-
-        document.querySelectorAll('.delete-company-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = btn.dataset.id;
-                const modalEl = document.getElementById('confirmDeleteModal');
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
-                document.getElementById('confirmDeleteBtn').onclick = async () => {
-                    const url = `{% url 'companies:company_delete_url' 0 %}`.replace('/0/', '/' + id + '/');
-                    const r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': getCSRF() } });
-                    if (r.ok) {
-                        modal.hide();
-                        location.reload();
-                    } else alert('Delete failed');
-                };
-            });
-        });
     });
+    let debounceTimer = null;
+    let currentPage = 1;
+
+    function fetchCompanies() {
+        const q = document.getElementById('companySearch').value;
+        const createdAfter = document.getElementById('createdAfter').value;
+        const createdBefore = document.getElementById('createdBefore').value;
+
+        const params = new URLSearchParams({
+            q,
+            created_after: createdAfter,
+            created_before: createdBefore,
+            page: currentPage
+        });
+
+        fetch(`/companies/api/?${params.toString()}`)
+            .then(res => res.json())
+            .then(data => {
+                console.log(data);
+                renderCompanies(data.results);
+                renderPagination(data.pagination);
+            });
+    }
+
+    function renderCompanies(companies) {
+        const tbody = document.getElementById('companiesTableBody');
+        tbody.innerHTML = '';
+
+        if (!companies.length) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center text-muted">
+                No companies found
+                </td>
+            </tr>`;
+            return;
+        }
+
+        companies.forEach(company => {
+            tbody.insertAdjacentHTML('beforeend', `
+            <tr onclick="window.location='${company.id}'" style="cursor:pointer;">
+                <td>${company.added_on}</td>
+                <td>${company.name}</td>
+                <td>${company.city || '—'}</td>
+                <td>${company.state || '—'}</td>
+                <td>${company.active_users}</td>
+            </tr>
+            `);
+        });
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        fetchCompanies();
+    }
+
+    function renderPagination(pagination) {
+        const ul = document.getElementById('companiesPagination');
+        ul.innerHTML = '';
+
+        if (pagination.has_previous) {
+            ul.insertAdjacentHTML('beforeend', `
+            <li class="page-item">
+                <button class="page-link" onclick="goToPage(${pagination.page - 1})">
+                Previous
+                </button>
+            </li>
+            `);
+        }
+
+        ul.insertAdjacentHTML('beforeend', `
+            <li class="page-item disabled">
+            <span class="page-link">
+                Page ${pagination.page} of ${pagination.total_pages}
+            </span>
+            </li>
+        `);
+
+        if (pagination.has_next) {
+            ul.insertAdjacentHTML('beforeend', `
+            <li class="page-item">
+                <button class="page-link" onclick="goToPage(${pagination.page + 1})">
+                Next
+                </button>
+            </li>
+            `);
+        }
+    }
+
+    document.getElementById('companySearch').addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            currentPage = 1;
+            fetchCompanies();
+        }, 500);
+    });
+
+    document.getElementById('createdAfter').addEventListener('change', () => {
+        currentPage = 1;
+        fetchCompanies();
+    });
+
+    document.getElementById('createdBefore').addEventListener('change', () => {
+        currentPage = 1;
+        fetchCompanies();
+    });
+    document.addEventListener('DOMContentLoaded', fetchCompanies);
 </script>
 {% endblock %}

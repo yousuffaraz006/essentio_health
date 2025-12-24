@@ -15,6 +15,20 @@ class MemberProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='member_profile')
     phone = models.CharField(max_length=30, blank=True)
     roles = models.ManyToManyField(Role, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='members_created'
+    )
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='members_updated'
+    )
 
     def is_admin_user(self):
         return self.roles.exists()
@@ -41,6 +55,20 @@ class ClientProfile(models.Model):
         ('DIGITAL', 'Digital'),
     )
     plan = models.CharField(max_length=20, choices=PLAN_CHOICES, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='clients_created'
+    )
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='clients_updated'
+    )
 
     def __str__(self):
         return self.user.get_full_name() or self.user.username

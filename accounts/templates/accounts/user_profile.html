@@ -43,28 +43,162 @@
             role="tabpanel"
             aria-labelledby="pills-home-tab"
           >
-            <p class="mb-2">
-              <strong class="d-block d-sm-inline">Email:</strong> {% if user.email %}{{ user.email }}{% else %}-----{% endif %}
-            </p>
-            <p class="mb-2">
-              <strong class="d-block d-sm-inline">Phone:</strong> {% if profile.phone %}{{ profile.phone }}{% else %}-----{% endif %}
-            </p>
-            <p class="mb-2">
-              <strong class="d-block d-sm-inline">City:</strong>
-              {% if user.client_profile.city or user.client_profile.state or user.client_profile.country %}
-                {{ user.client_profile.city }}{% if user.client_profile.city and user.client_profile.state %},{% endif %}
-                {{ user.client_profile.state }}{% if user.client_profile.state and user.client_profile.country %},{% endif %}
-                {{ user.client_profile.country }}
-              {% else %}
-                -----
-              {% endif %}
-            </p>
-            <p class="mb-2">
-              <strong class="d-block d-sm-inline">Company:</strong> {% if profile.company %}<a href="{% url 'companies:company_profile_url' profile.company.id %}">{{ profile.company.name }}</a>{% else %}-----{% endif %}
-            </p>
-            <p class="mb-2">
-              <strong class="d-block d-sm-inline">Plan:</strong> {% if profile.plan %}{{ profile.plan }}{% else %}-----{% endif %}
-            </p>
+            <div class="row" id="userProfileForm" data-user-id="{{ user.id }}">
+
+              <!-- First Name -->
+              <div class="col-md-6">
+                <div class="form-group form-group-default">
+                  <label>First Name</label>
+                  <input
+                    type="text"
+                    class="form-control autosave-field"
+                    data-section="user"
+                    data-field="first_name"
+                    value="{{ user.first_name|default:'---' }}"
+                  />
+                </div>
+              </div>
+
+              <!-- Last Name -->
+              <div class="col-md-6">
+                <div class="form-group form-group-default">
+                  <label>Last Name</label>
+                  <input
+                    type="text"
+                    class="form-control autosave-field"
+                    data-section="user"
+                    data-field="last_name"
+                    value="{{ user.last_name|default:'---' }}"
+                  />
+                </div>
+              </div>
+
+              <!-- Email -->
+              <div class="col-md-6">
+                <div class="form-group form-group-default">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    class="form-control autosave-field"
+                    data-section="user"
+                    data-field="email"
+                    value="{{ user.email|default:'---' }}"
+                  />
+                </div>
+              </div>
+
+              <!-- Phone -->
+              <div class="col-md-6">
+                <div class="form-group form-group-default">
+                  <label>Phone</label>
+                  <input
+                    type="text"
+                    class="form-control autosave-field"
+                    data-section="client_profile"
+                    data-field="phone"
+                    value="{{ user.client_profile.phone|default:'---' }}"
+                  />
+                </div>
+              </div>
+
+              <!-- City -->
+              <div class="col-md-4">
+                <div class="form-group form-group-default">
+                  <label>City</label>
+                  <input
+                    type="text"
+                    class="form-control autosave-field"
+                    data-section="client_profile"
+                    data-field="city"
+                    value="{{ user.client_profile.city|default:'---' }}"
+                  />
+                </div>
+              </div>
+
+              <!-- State -->
+              <div class="col-md-4">
+                <div class="form-group form-group-default">
+                  <label>State</label>
+                  <input
+                    type="text"
+                    class="form-control autosave-field"
+                    data-section="client_profile"
+                    data-field="state"
+                    value="{{ user.client_profile.state|default:'---' }}"
+                  />
+                </div>
+              </div>
+
+              <!-- Country -->
+              <div class="col-md-4">
+                <div class="form-group form-group-default">
+                  <label>Country</label>
+                  <input
+                    type="text"
+                    class="form-control autosave-field"
+                    data-section="client_profile"
+                    data-field="country"
+                    value="{{ user.client_profile.country|default:'---' }}"
+                  />
+                </div>
+              </div>
+
+              <!-- Status -->
+              <div class="col-md-4">
+                <div class="form-group form-group-default d-flex align-items-center justify-content-between">
+                  <label class="mb-0">User Status</label>
+
+                  <div class="form-check form-switch">
+                    <input
+                      class="form-check-input autosave-field"
+                      type="checkbox"
+                      data-section="user"
+                      data-field="is_active"
+                      {% if user.is_active %}checked{% endif %}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Plan -->
+              <div class="col-md-4">
+                <div class="form-group form-group-default">
+                  <label>Plan</label>
+                  <select
+                    class="form-control autosave-field"
+                    data-section="client_profile"
+                    data-field="plan"
+                  >
+                    <option value="ELITE" {% if user.client_profile.plan == 'ELITE' %}selected{% endif %}>Elite</option>
+                    <option value="CORE" {% if user.client_profile.plan == 'CORE' %}selected{% endif %}>Core</option>
+                    <option value="DIGITAL" {% if user.client_profile.plan == 'DIGITAL' %}selected{% endif %}>Digital</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Company -->
+              <div class="col-md-4">
+                <div class="form-group form-group-default">
+                  <label>Company</label>
+                  <select
+                    class="form-select autosave-field"
+                    data-section="client_profile"
+                    data-field="company"
+                  >
+                    <option value="">Individual / No Company</option>
+                    {% for company in companies %}
+                      <option
+                        value="{{ company.id }}"
+                        {% if user.client_profile.company_id == company.id %}selected{% endif %}
+                      >
+                        {{ company.name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+
+            </div>
           </div>
           <div
             class="tab-pane fade"
@@ -92,5 +226,104 @@
       </div>
     </div>
     {% endblock %} {% block page_scripts %}
-    <script></script>
+    <script>
+      (function () {
+        const userForm = document.getElementById('userProfileForm');
+        if (!userForm) return;
+
+        const userId = userForm.dataset.userId;
+
+        document.querySelectorAll('.autosave-field').forEach(input => {
+          let initialValue = getValue(input);
+
+          // Save on blur
+          input.addEventListener('blur', () => {
+            const currentValue = getValue(input);
+            if (currentValue !== initialValue) {
+              saveField(input, currentValue);
+              initialValue = currentValue;
+            }
+          });
+
+          // Save on Enter for text inputs
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              input.blur();
+            }
+          });
+
+          // Save immediately for select & checkbox
+          if (input.tagName === 'SELECT' || input.type === 'checkbox') {
+            input.addEventListener('change', () => {
+              const currentValue = getValue(input);
+              saveField(input, currentValue);
+              initialValue = currentValue;
+            });
+          }
+        });
+
+        function getValue(input) {
+          if (input.type === 'checkbox') {
+            return input.checked;
+          }
+          return input.value;
+        }
+
+        function saveField(input, value) {
+          const section = input.dataset.section;
+          const field = input.dataset.field;
+
+          // Visual loading state
+          input.classList.add('opacity-50');
+
+          fetch(`/users/update/${userId}/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCSRF(),
+            },
+            body: JSON.stringify({
+              section: section,
+              field: field,
+              value: value,
+            }),
+          })
+            .then(res => res.json())
+            .then(data => {
+              input.classList.remove('opacity-50');
+
+              if (data.success) {
+                showSaved(input);
+              } else {
+                showError(input);
+              }
+            })
+            .catch(() => {
+              input.classList.remove('opacity-50');
+              showError(input);
+            });
+        }
+
+        function showSaved(input) {
+          showStatus(input, 'Saved!', 'text-success');
+        }
+
+        function showError(input) {
+          showStatus(input, 'Error', 'text-danger');
+        }
+
+        function showStatus(input, text, cls) {
+          let badge = input.parentElement.querySelector('.autosave-status');
+          if (!badge) {
+            badge = document.createElement('small');
+            badge.className = `autosave-status ${cls} ms-2 fw-semibold`;
+            input.parentElement.appendChild(badge);
+          }
+          badge.textContent = text;
+
+          setTimeout(() => badge.remove(), 1500);
+        }
+      })();
+    </script>
     {% endblock %}

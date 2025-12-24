@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.db import transaction
 from .models import *
 from .forms import *
+import json
 
 # Create your views here.
 
@@ -143,7 +144,7 @@ def clients_list_view(request):
     )
     return render(request, 'accounts/users_page.html', {'users': users})
 
-def add_users_page(request):
+def add_clients_page(request):
     if request.method == 'GET':
         companies = Company.objects.all().order_by('name')
         return render(
@@ -211,4 +212,51 @@ def add_users_page(request):
 def user_profile_view(request, pk):
     user = get_object_or_404(User, pk=pk)
     profile = getattr(user, 'client_profile',None)
-    return render(request, 'accounts/user_profile.html', {'user': user, 'profile': profile})
+    companies = Company.objects.all().order_by('name')
+    return render(request, 'accounts/user_profile.html', {'user': user, 'profile': profile, 'companies': companies})
+
+@require_POST
+def update_clients_view(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+
+    data = json.loads(request.body)
+    section = data.get('section')
+    field = data.get('field')
+    value = data.get('value')
+
+    # ---- allowed fields ----
+    USER_FIELDS = {'first_name', 'last_name', 'email', 'is_active'}
+    CLIENT_FIELDS = {'phone', 'city', 'state', 'country', 'plan', 'company'}
+
+    if section == 'user':
+        if field not in USER_FIELDS:
+            return JsonResponse({'success': False}, status=400)
+
+        # type handling
+        if field == 'is_active':
+            value = value is True or value == 'true'
+
+        setattr(user, field, value)
+        user.save(update_fields=[field])
+
+    elif section == 'client_profile':
+        profile = get_object_or_404(ClientProfile, user=user)
+
+        if field not in CLIENT_FIELDS:
+            return JsonResponse({'success': False}, status=400)
+
+        # company is FK
+        if field == 'company':
+            try:
+                value = int(value)
+                value = Company.objects.filter(id=value).first()
+            except (TypeError, ValueError):
+                value = None
+
+        setattr(profile, field, value)
+        profile.save(update_fields=[field])
+
+    else:
+        return JsonResponse({'success': False}, status=400)
+
+    return JsonResponse({'success': True})
