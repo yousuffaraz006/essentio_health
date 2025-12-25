@@ -227,6 +227,31 @@
     </div>
     {% endblock %} {% block page_scripts %}
     <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const tab = new URLSearchParams(window.location.search).get("tab");
+        if (!tab) return;
+
+        const target = document.querySelector(`.nav-link[href="#${tab}"]`);
+        if (target) new bootstrap.Tab(target).show();
+      });
+      // When switching tabs, update URL parameter
+      document.querySelectorAll('.nav-link[data-bs-toggle="pill"]').forEach(tab => {
+        tab.addEventListener("shown.bs.tab", function (e) {
+          const tabId = e.target.getAttribute("href").replace("#", "");
+          const url = new URL(window.location);
+
+          // If first tab, remove ?tab or reset it
+          if (tabId === "personal-details") {
+            url.searchParams.delete("tab");            // clears tab
+            history.replaceState({}, "", url);         // update URL without reload
+            return;
+          }
+
+          // Otherwise set tab param
+          url.searchParams.set("tab", tabId);
+          history.replaceState({}, "", url);
+        });
+      });
       (function () {
         const userForm = document.getElementById('userProfileForm');
         if (!userForm) return;

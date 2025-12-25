@@ -41,7 +41,19 @@ class CompanyPOC(models.Model):
     access_master_dashboard = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='company_pocs_created'
+    )
     updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='company_pocs_updated'
+    )
 
     def __str__(self):
         return f"{self.name} ({self.company.name})"

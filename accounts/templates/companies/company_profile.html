@@ -50,7 +50,14 @@
     style="white-space: nowrap;"
   >
     <li class="nav-item">
-      <a class="nav-link" id="pills-home-tab" data-bs-toggle="pill" href="#personal-details">
+      <a
+        class="nav-link active"
+        id="pills-home-tab"
+        data-bs-toggle="pill"
+        href="#personal-details"
+        role="tab"
+        aria-selected="true"
+      >
         Company Details
       </a>
     </li>
@@ -86,7 +93,12 @@
     <div class="card">
       <div class="card-body">
         <div class="tab-content mt-2 mb-3" id="pills-tabContent">
-          <div class="tab-pane fade" id="personal-details">
+          <div
+            class="tab-pane fade show active"
+            id="personal-details"
+            role="tabpanel"
+            aria-labelledby="pills-home-tab"
+          >
             <div class="row" id="companyDetailsForm" data-company-id="{{ company.id }}">
 
               <!-- Company Name -->
@@ -188,25 +200,39 @@
             role="tabpanel"
             aria-labelledby="pills-contact-tab"
           >
+            <div class="d-flex justify-content-end gap-2 mb-3">
+              <!-- Add User -->
+              <a href="{% url 'accounts:add_user_url' %}?company_id={{ company.id }}" 
+                class="btn btn-primary btn-sm">
+                Add User
+              </a>
+
+              <!-- Upload CSV -->
+              <a href="{% url 'accounts:upload_bulk_clients_page_url' %}?company_id={{ company.id }}" 
+                class="btn btn-success btn-sm">
+                Upload CSV
+              </a>
+            </div>
             <div class="table-responsive">
               <table class="basic-datatables display table soft-table">
                 <thead>
                   <tr>
-                    <th>First</th>
-                    <th>Last</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>City</th>
+                    <th>Name</th>
+                    <th>Plan</th>
+                    <th>Contact</th>
+                    <th>Location</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for user in users %}
                   <tr>
-                    <td>{{ user.first_name }}</td>
-                    <td>{{ user.last_name }}</td>
-                    <td>{{ user.email }}</td>
-                    <td>{% if user.client_profile.phone %}{{ user.client_profile.phone }}{% else %}-----{% endif %}</td>
+                    <td>{{ user.first_name }} {{ user.last_name }}</td>
+                    <td>{{ user.client_profile.plan }}</td>
+                    <td>
+                      {{ user.email }}
+                      <p class="text-muted">{{ user.client_profile.phone }}</p>
+                    </td>
                     <td>
                       {% if user.client_profile.city or user.client_profile.state or user.client_profile.country %}
                       {{ user.client_profile.city }}{% if user.client_profile.city and user.client_profile.state %},{% endif %}
@@ -322,241 +348,247 @@
         </div>
       </div>
     </div>
-    {% endblock %} {% block page_scripts %}
-    <script>
-      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  </div>
+</div>
+{% endblock %}
+{% block page_scripts %}
+<script>
+  // When switching tabs, update URL parameter
+  document.querySelectorAll('.nav-link[data-bs-toggle="pill"]').forEach(tab => {
+    tab.addEventListener("shown.bs.tab", function (e) {
+      const tabId = e.target.getAttribute("href").replace("#", "");
+      const url = new URL(window.location);
 
-      document.querySelectorAll('.autosave-field').forEach(input => {
-        let initialValue = input.value;
-
-        input.addEventListener('blur', () => {
-          if (input.value !== initialValue) {
-            saveField(input);
-            initialValue = input.value;
-          }
-        });
-
-        input.addEventListener('keydown', e => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            input.blur();
-          }
-        });
-      });
-
-      function saveField(input) {
-        const companyId = document.getElementById('companyDetailsForm').dataset.companyId;
-        const field = input.dataset.field;
-        const value = input.value;
-
-        fetch(`/companies/${companyId}/edit/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRF(),
-          },
-          body: JSON.stringify({ field, value })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            showSaved(input);
-          } else {
-            console.log('Failed to save');
-          }
-        });
+      // If first tab, remove ?tab or reset it
+      if (tabId === "personal-details") {
+        url.searchParams.delete("tab");            // clears tab
+        history.replaceState({}, "", url);         // update URL without reload
+        return;
       }
 
-      function showSaved(input) {
-        const badge = document.createElement('small');
-        badge.className = 'text-success fw-semibold ms-2';
-        badge.innerText = 'Saved!';
-        input.parentElement.appendChild(badge);
+      // Otherwise set tab param
+      url.searchParams.set("tab", tabId);
+      history.replaceState({}, "", url);
+    });
+  });
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
 
-        setTimeout(() => badge.remove(), 1500);
+  document.querySelectorAll('.autosave-field').forEach(input => {
+    let initialValue = input.value;
+
+    input.addEventListener('blur', () => {
+      if (input.value !== initialValue) {
+        saveField(input);
+        initialValue = input.value;
       }
+    });
 
-      const companyId = "{{ company.id }}";
-      const container = document.getElementById("pocCardsContainer");
-      const emptyState = document.getElementById("pocEmptyState");
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        input.blur();
+      }
+    });
+  });
 
-      fetch(`/companies/pocs/${companyId}/`)
-        .then(res => res.json())
-        .then(data => {
-          console.log(data);
-          container.innerHTML = "";
+  function saveField(input) {
+    const companyId = document.getElementById('companyDetailsForm').dataset.companyId;
+    const field = input.dataset.field;
+    const value = input.value;
 
-          if (!data.pocs || data.pocs.length === 0) {
-            emptyState.classList.remove("d-none");
-            return;
-          }
+    fetch(`/companies/${companyId}/edit/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRF(),
+      },
+      body: JSON.stringify({ field, value })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showSaved(input);
+      } else {
+        console.log('Failed to save');
+      }
+    });
+  }
 
-          emptyState.classList.add("d-none");
+  function showSaved(input) {
+    const badge = document.createElement('small');
+    badge.className = 'text-success fw-semibold ms-2';
+    badge.innerText = 'Saved!';
+    input.parentElement.appendChild(badge);
 
-          data.pocs.forEach(poc => {
-            container.insertAdjacentHTML(
-              "beforeend",
-              renderPocCard(poc)
-            );
-          });
-        })
-        .catch(() => {
-          emptyState.classList.remove("d-none");
-        });
+    setTimeout(() => badge.remove(), 1500);
+  }
 
-      function renderPocCard(poc) {
-        return `
-          <div class="col-12 mb-3">
-            <div class="card poc-card-full">
-              <div class="card-body d-flex justify-content-between align-items-center">
+  const companyId = "{{ company.id }}";
+  const container = document.getElementById("pocCardsContainer");
+  const emptyState = document.getElementById("pocEmptyState");
 
-                <div>
-                  <h6 class="mb-1 poc-name">${poc.name}</h6>
-                  <div class="small poc-designation">${poc.designation}</div>
+  fetch(`/companies/pocs/${companyId}/`)
+  .then(res => res.json())
+  .then(data => {
+    console.log(data);
+    container.innerHTML = "";
 
-                  <div class="small">
-                    <i class="fa fa-envelope me-1 text-muted"></i>
-                    <span class="poc-email">${poc.email}</span>
-                  </div>
-                </div>
+    if (!data.pocs || data.pocs.length === 0) {
+      emptyState.classList.remove("d-none");
+      return;
+    }
 
-                <div class="d-flex align-items-center gap-3">
-                  <span
-                    class="badge bg-light text-dark poc-access"
-                    data-access="${poc.access_master_dashboard}"
-                  >
-                    Dashboard Access:
-                    <strong class="ms-1 ${poc.access_master_dashboard ? 'text-success' : 'text-danger'}">
-                      ${poc.access_master_dashboard ? 'Yes' : 'No'}
-                    </strong>
-                  </span>
+    emptyState.classList.add("d-none");
 
-                  <div class="d-flex gap-2">
-                    <button
-                      class="btn btn-sm btn-outline-primary edit-poc-btn"
-                      data-id="${poc.id}"
-                    >
-                      <i class="fa fa-edit"></i>
-                    </button>
+    data.pocs.forEach(poc => {
+      container.insertAdjacentHTML(
+        "beforeend",
+        renderPocCard(poc)
+      );
+    });
+  })
+  .catch(() => {
+    emptyState.classList.remove("d-none");
+  });
 
-                    <button
-                      class="btn btn-sm btn-outline-danger delete-poc-btn"
-                      data-id="${poc.id}"
-                    >
-                      <i class="fa fa-trash"></i>
-                    </button>
-                  </div>
-                </div>
+  function renderPocCard(poc) {
+    return `
+      <div class="col-12 mb-3">
+        <div class="card poc-card-full">
+          <div class="card-body d-flex justify-content-between align-items-center">
 
+            <div>
+              <h6 class="mb-1 poc-name">${poc.name}</h6>
+              <div class="small poc-designation">${poc.designation}</div>
+
+              <div class="small">
+                <i class="fa fa-envelope me-1 text-muted"></i>
+                <span class="poc-email">${poc.email}</span>
               </div>
             </div>
+
+            <div class="d-flex align-items-center gap-3">
+              <span
+                class="badge bg-light text-dark poc-access"
+                data-access="${poc.access_master_dashboard}"
+              >
+                Dashboard Access:
+                <strong class="ms-1 ${poc.access_master_dashboard ? 'text-success' : 'text-danger'}">
+                  ${poc.access_master_dashboard ? 'Yes' : 'No'}
+                </strong>
+              </span>
+
+              <div class="d-flex gap-2">
+                <button
+                  class="btn btn-sm btn-outline-primary edit-poc-btn"
+                  data-id="${poc.id}"
+                >
+                  <i class="fa fa-edit"></i>
+                </button>
+
+                <button
+                  class="btn btn-sm btn-outline-danger delete-poc-btn"
+                  data-id="${poc.id}"
+                >
+                  <i class="fa fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
           </div>
-        `;
+        </div>
+      </div>
+    `;
+  }
+  let activePocId = null;
+
+  // OPEN CREATE MODAL
+  document.getElementById("addPocBtn").addEventListener("click", () => {
+    activePocId = null;
+    document.getElementById("pocModalTitle").innerText = "Add POC";
+    document.getElementById("pocForm").reset();
+    new bootstrap.Modal(document.getElementById("pocModal")).show();
+  });
+
+  // OPEN EDIT MODAL
+  document.addEventListener("click", e => {
+    const editBtn = e.target.closest(".edit-poc-btn");
+    if (!editBtn) return;
+
+    e.preventDefault();
+
+    const card = editBtn.closest(".poc-card-full");
+    activePocId = editBtn.dataset.id;
+
+    document.getElementById("pocModalTitle").innerText = "Edit POC";
+
+    document.getElementById("pocName").value =
+      card.querySelector(".poc-name")?.innerText || "";
+
+    document.getElementById("pocDesignation").value =
+      card.querySelector(".poc-designation")?.innerText || "";
+
+    document.getElementById("pocEmail").value =
+      card.querySelector(".poc-email")?.innerText || "";
+
+    document.getElementById("pocAccess").checked =
+      card.querySelector(".poc-access")?.dataset.access === "true";
+
+    new bootstrap.Modal(document.getElementById("pocModal")).show();
+  });
+  
+  // SAVE (CREATE / UPDATE)
+  document.getElementById("savePocBtn").addEventListener("click", () => {
+    const url = activePocId
+      ? `/companies/pocs/${activePocId}/update/`
+      : `/companies/pocs/create/`;
+
+    const data = new FormData();
+    data.append("company_id", document.getElementById("pocCompanyId").value);
+    data.append("name", document.getElementById("pocName").value);
+    data.append("designation", document.getElementById("pocDesignation").value);
+    data.append("email", document.getElementById("pocEmail").value);
+    data.append(
+      "access_master_dashboard",
+      document.getElementById("pocAccess").checked
+    );
+
+    fetch(url, {
+      method: "POST",
+      headers: { "X-CSRFToken": getCSRF() },
+      body: data,
+    })
+    .then(res => res.json())
+    .then(data => {
+      if(data.success){
+        location.reload();
       }
-      let activePocId = null;
+    });
+  });
 
-      // OPEN CREATE MODAL
-      document.getElementById("addPocBtn").addEventListener("click", () => {
-        activePocId = null;
-        document.getElementById("pocModalTitle").innerText = "Add POC";
-        document.getElementById("pocForm").reset();
-        new bootstrap.Modal(document.getElementById("pocModal")).show();
-      });
+  // OPEN DELETE MODAL
+  document.addEventListener("click", e => {
+    const delBtn = e.target.closest(".delete-poc-btn");
+    if (!delBtn) return;
 
-      // OPEN EDIT MODAL
-      document.addEventListener("click", e => {
-        const editBtn = e.target.closest(".edit-poc-btn");
-        if (!editBtn) return;
+    e.preventDefault();
+    activePocId = delBtn.dataset.id;
+    new bootstrap.Modal(document.getElementById("deletePocModal")).show();
+  });
 
-        e.preventDefault();
+  // CONFIRM DELETE
+  document.getElementById("confirmDeletePocBtn").addEventListener("click", () => {
+    fetch(`/companies/pocs/${activePocId}/delete/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": getCSRF() },
+    }).then(() => location.reload());
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (!tab) return;                             // no tab param means stay on first tab
 
-        const card = editBtn.closest(".poc-card-full");
-        activePocId = editBtn.dataset.id;
-
-        document.getElementById("pocModalTitle").innerText = "Edit POC";
-
-        document.getElementById("pocName").value =
-          card.querySelector(".poc-name")?.innerText || "";
-
-        document.getElementById("pocDesignation").value =
-          card.querySelector(".poc-designation")?.innerText || "";
-
-        document.getElementById("pocEmail").value =
-          card.querySelector(".poc-email")?.innerText || "";
-
-        document.getElementById("pocAccess").checked =
-          card.querySelector(".poc-access")?.dataset.access === "true";
-
-        new bootstrap.Modal(document.getElementById("pocModal")).show();
-      });
-      
-      // SAVE (CREATE / UPDATE)
-      document.getElementById("savePocBtn").addEventListener("click", () => {
-        const url = activePocId
-          ? `/companies/pocs/${activePocId}/update/`
-          : `/companies/pocs/create/`;
-
-        const data = new FormData();
-        data.append("company_id", document.getElementById("pocCompanyId").value);
-        data.append("name", document.getElementById("pocName").value);
-        data.append("designation", document.getElementById("pocDesignation").value);
-        data.append("email", document.getElementById("pocEmail").value);
-        data.append(
-          "access_master_dashboard",
-          document.getElementById("pocAccess").checked
-        );
-
-        fetch(url, {
-          method: "POST",
-          headers: { "X-CSRFToken": getCSRF() },
-          body: data,
-        }).then(() => {
-          location.hash = "#poc-details";
-          location.reload();
-        });
-      });
-
-      // OPEN DELETE MODAL
-      document.addEventListener("click", e => {
-        const delBtn = e.target.closest(".delete-poc-btn");
-        if (!delBtn) return;
-
-        e.preventDefault();
-        activePocId = delBtn.dataset.id;
-        new bootstrap.Modal(document.getElementById("deletePocModal")).show();
-      });
-
-      // CONFIRM DELETE
-      document.getElementById("confirmDeletePocBtn").addEventListener("click", () => {
-        fetch(`/companies/pocs/${activePocId}/delete/`, {
-          method: "POST",
-          headers: { "X-CSRFToken": getCSRF() },
-        }).then(() => {
-          location.hash = "#poc-details";
-          location.reload();
-        });
-      });
-      document.addEventListener("DOMContentLoaded", function () {
-        if (window.location.hash) {
-          const trigger = document.querySelector(
-            `.nav-link[href="${window.location.hash}"]`
-          );
-          if (trigger) {
-            new bootstrap.Tab(trigger).show();
-          }
-        } else {
-          // fallback to first tab
-          const firstTab = document.querySelector(".nav-link[data-bs-toggle='pill']");
-          if (firstTab) {
-            new bootstrap.Tab(firstTab).show();
-          }
-        }
-      });
-      document.addEventListener("shown.bs.tab", function (e) {
-        const target = e.target.getAttribute("href");
-        if (target) {
-          history.replaceState(null, "", target);
-        }
-      });
-    </script>
-    {% endblock %}
+    const target = document.querySelector(`.nav-link[href="#${tab}"]`);
+    if (target) new bootstrap.Tab(target).show(); // open the correct tab
+  });
+</script>
+{% endblock %}

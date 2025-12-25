@@ -13,6 +13,7 @@
     </div>
     <div class="ms-md-auto py-2 py-md-0">
         <a href="#" class="btn btn-label-info btn-round me-2">Manage</a>
+        <a href="{% url 'accounts:upload_bulk_clients_page_url' %}" class="btn btn-primary btn-round ms-auto" id="openAddUserPage">Bulk Upload</a>
         <a href="{% url 'accounts:add_user_url' %}" class="btn btn-primary btn-round ms-auto" id="openAddUserPage">Add User</a>
     </div>
 </div>
@@ -20,8 +21,32 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-body">
+                <div class="row mb-3 g-2 justify-content-between">
+                    <!-- Created Before -->
+                    <div class="col-md-3 d-flex flex-column">
+                        <label class="form-label mb-1">Joined Before</label>
+                        <input type="date" id="joinedBefore" class="form-control" />
+                    </div>
+
+                    <!-- Search -->
+                    <div class="col-md-4">
+                        <label class="form-label mb-1">Search</label>
+                        <input
+                        type="text"
+                        id="userSearch"
+                        class="form-control"
+                        placeholder="Search users..."
+                        />
+                    </div>
+
+                    <!-- Created After -->
+                    <div class="col-md-3 d-flex flex-column">
+                        <label class="form-label mb-1">Joined After</label>
+                        <input type="date" id="joinedAfter" class="form-control" />
+                    </div>
+                </div>
                 <div class="table-responsive">
-                    <table class="basic-datatables display table soft-table">
+                    <table class="display table soft-table">
                         <thead>
                             <tr>
                                 <th>Added On</th>
@@ -32,37 +57,14 @@
                                 <th>Status</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for user in users %}
-                            <tr onclick="window.location.href='{% url 'accounts:user_profile_url' user.id %}'" style="cursor:pointer;">
-                                <td data-order="{{ user.date_joined|date:"Y-m-d" }}">{{ user.date_joined|date:"d M, Y" }}</td>
-                                <td>{% if user.client_profile.company.name %}
-                                        {{ user.client_profile.company.name }}
-                                    {% else %}
-                                        <span class="badge bg-secondary">Individual</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ user.client_profile.user.get_full_name }}
-                                    <div class="text-muted small">{{ user.email }}</div>
-                                </td>
-                                <td>
-                                    {{ user.client_profile.plan }}
-                                </td>
-                                <td>
-                                    {% if user.client_profile.city or user.client_profile.state or user.client_profile.country %}
-                                    {{ user.client_profile.city }}{% if user.client_profile.city and user.client_profile.state %},{% endif %}
-                                    {{ user.client_profile.state }}{% if user.client_profile.state and user.client_profile.country %},{% endif %}
-                                    {{ user.client_profile.country }}
-                                    {% else %}
-                                    <span class="text-muted small">No location</span>
-                                    {% endif %}
-                                </td>
-                                <td>{% if user.client_profile.user.is_active %}Active{% else %}Inactive{% endif %}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+                        <tbody id="usersTableBody"></tbody>
                     </table>
                 </div>
+                <nav class="mt-3">
+                    <ul class="pagination justify-content-end mb-0" id="usersPagination">
+                        <!-- JS will inject buttons here -->
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -72,6 +74,134 @@
 
 {% block page_scripts %}
 <script>
-    
+    let currentUserPage = 1;
+    let debounceTimer;
+
+    // FETCH USERS
+    function fetchUsers() {
+        const q = document.getElementById('userSearch').value;
+        const joinedAfter = document.getElementById('joinedAfter').value;
+        const joinedBefore = document.getElementById('joinedBefore').value;
+
+        const params = new URLSearchParams({
+            q,
+            joined_after: joinedAfter,
+            joined_before: joinedBefore,
+            page: currentUserPage
+        });
+
+        fetch(`/users/api/?${params.toString()}`)
+            .then(res => res.json())
+            .then(data => {
+                renderUsers(data.results);
+                renderUsersPagination(data.pagination);
+            });
+    }
+
+
+    // RENDER USERS IN TABLE
+    function renderUsers(users) {
+        const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = '';
+
+        if (!users.length) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted">No users found</td>
+            </tr>`;
+            return;
+        }
+
+        users.forEach(user => {
+            tbody.insertAdjacentHTML('beforeend', `
+            <tr onclick="window.location=${user.id}" style="cursor:pointer;">
+                <td>${user.joined}</td>
+                <td>${user.company || '<span class="badge bg-secondary">Individual</span>'}</td>
+
+                <td>
+                    ${user.name}
+                    <div class="text-muted small">${user.email}</div>
+                </td>
+
+                <td>${user.plan || '—'}</td>
+
+                <td>
+                    ${(user.city || user.state || user.country)
+                        ? `${user.city||''}${user.state?', '+user.state:''}${user.country?', '+user.country:''}`
+                        : '<span class="text-muted small">No location</span>'}
+                </td>
+
+                <td>${user.is_active ? 'Active' : 'Inactive'}</td>
+            </tr>`);
+        });
+    }
+
+
+    // PAGINATION
+    function renderUsersPagination(pagination) {
+        const ul = document.getElementById('usersPagination');
+        ul.innerHTML = '';
+
+        if (pagination.has_previous) {
+            ul.insertAdjacentHTML('beforeend', `
+            <li class="page-item">
+                <button class="page-link" onclick="goToUsersPage(${pagination.page - 1})">Previous</button>
+            </li>`);
+        }
+
+        ul.insertAdjacentHTML('beforeend', `
+            <li class="page-item disabled">
+                <span class="page-link">Page ${pagination.page} of ${pagination.total_pages}</span>
+            </li>`);
+
+        if (pagination.has_next) {
+            ul.insertAdjacentHTML('beforeend', `
+            <li class="page-item">
+                <button class="page-link" onclick="goToUsersPage(${pagination.page + 1})">Next</button>
+            </li>`);
+        }
+    }
+
+    function goToUsersPage(page) {
+        currentUserPage = page;
+        fetchUsers();
+    }
+
+
+    // EVENT LISTENERS
+    document.getElementById('userSearch').addEventListener('input', () => {
+        const q = document.getElementById('userSearch').value.trim();
+
+        clearTimeout(debounceTimer);
+
+        // If cleared, reload fresh results
+        if (q.length === 0) {
+            debounceTimer = setTimeout(() => {
+                currentUserPage = 1;
+                fetchUsers();
+            }, 300);
+            return;
+        }
+
+        // Only trigger when >= 3 characters
+        if (q.length < 3) return;
+
+        debounceTimer = setTimeout(() => {
+            currentUserPage = 1;
+            fetchUsers();
+        }, 300);
+    });
+
+    document.getElementById('joinedAfter').addEventListener('change', () => {
+        currentUserPage = 1;
+        fetchUsers();
+    });
+
+    document.getElementById('joinedBefore').addEventListener('change', () => {
+        currentUserPage = 1;
+        fetchUsers();
+    });
+
+    document.addEventListener('DOMContentLoaded', fetchUsers);
 </script>
 {% endblock %}

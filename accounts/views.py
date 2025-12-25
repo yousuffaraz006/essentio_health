@@ -1,7 +1,12 @@
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
-from django.db.models import Case, When, Value, IntegerField
+from rest_framework.permissions import IsAuthenticated  # adjust as needed
+from rest_framework.response import Response
+from django.core.paginator import Paginator
+from rest_framework.views import APIView
+from django.db.models import Case, When, Value, IntegerField, Q
 from django.shortcuts import render, get_object_or_404, redirect
+from .serializers import ClientsCSVSerializer
 from django.http import JsonResponse
 from django.db import transaction
 from .models import *
@@ -128,29 +133,78 @@ def admin_user_edit_view(request, pk):
         return JsonResponse({'success': False, 'errors': str(e)}, status=400)
 
 def clients_list_view(request):
-    users = (
-        User.objects
-        .select_related('client_profile', 'client_profile__company')
-        .filter(client_profile__isnull=False)
-        .exclude(is_superuser=True)
-        .annotate(
-            has_company=Case(
-                When(client_profile__company__isnull=False, then=Value(0)),
-                When(client_profile__company__isnull=True, then=Value(1)),
-                output_field=IntegerField(),
-            )
+    return render(request, 'accounts/users_page.html')
+
+def clients_list_api(request):
+    qs = User.objects.filter(client_profile__isnull=False).select_related("client_profile").order_by('-date_joined')
+
+    q = request.GET.get('q', '').strip()
+    if q:
+        qs = qs.filter(
+            Q(first_name__icontains=q) |
+            Q(last_name__icontains=q) |
+            Q(email__icontains=q) |
+            Q(client_profile__phone__icontains=q) |
+            Q(client_profile__city__icontains=q) |
+            Q(client_profile__state__icontains=q) |
+            Q(client_profile__country__icontains=q) |
+            Q(client_profile__plan__icontains=q) |
+            Q(client_profile__company__name__icontains=q)
         )
-        .order_by('has_company')
-    )
-    return render(request, 'accounts/users_page.html', {'users': users})
+
+    # ---------------- DATE FILTERS (JOINED) ----------------
+    joined_after = request.GET.get('joined_after')
+    if joined_after:
+        qs = qs.filter(date_joined__date__gte=joined_after)
+
+    joined_before = request.GET.get('joined_before')
+    if joined_before:
+        qs = qs.filter(date_joined__date__lte=joined_before)
+
+    # ---------------- PAGINATION ----------------
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(qs, 10)  # 10 users per page
+    page_obj = paginator.get_page(page_number)
+
+    # ---- BUILD RESPONSE ----
+    results = []
+    for u in page_obj:
+        cp = u.client_profile  # Guaranteed to exist now
+
+        results.append({
+            "id": u.id,
+            "name": f"{u.first_name} {u.last_name}".strip() or u.username,
+            "email": u.email,
+
+            "phone": cp.phone or "",
+            "city": cp.city or "",
+            "state": cp.state or "",
+            "country": cp.country or "",
+            "company": cp.company.name if cp.company else "",
+            "plan": cp.plan or "",
+
+            "joined": u.date_joined.strftime("%Y-%m-%d"),
+            "is_active": u.is_active,
+        })
+
+    return JsonResponse({
+        "results": results,
+        "pagination": {
+            "page": page_obj.number,
+            "total_pages": paginator.num_pages,
+            "has_next": page_obj.has_next(),
+            "has_previous": page_obj.has_previous(),
+        }
+    })
 
 def add_clients_page(request):
+    companies = Company.objects.all().order_by('name')
+    selected_company = request.GET.get("company_id")  # catch passed company ID
     if request.method == 'GET':
-        companies = Company.objects.all().order_by('name')
         return render(
             request,
             'accounts/add_users_page.html',
-            {'companies': companies}
+            {'companies': companies, 'selected_company': selected_company}
         )
 
     # -------- POST: create client user --------
@@ -260,3 +314,64 @@ def update_clients_view(request, user_id):
         return JsonResponse({'success': False}, status=400)
 
     return JsonResponse({'success': True})
+
+def upload_bulk_clients_view(request):
+    return render(request, 'accounts/add_bulk_users_page.html')
+
+class ClientsCSVUploadView(APIView):
+
+    def post(self, request):
+        rows = request.data.get('rows', [])
+        forced_company_id = request.GET.get('company_id')  # <── Check URL
+        forced_company = None
+
+        if forced_company_id:
+            from companies.models import Company
+            forced_company = Company.objects.filter(id=forced_company_id).first()
+
+        # detect duplicate emails inside CSV upload
+        emails = [r.get("email","").lower().strip() for r in rows]
+        duplicate_emails = {e for e in emails if emails.count(e) > 1 and e != ""}
+
+        rowErrors = []
+        success = True
+
+        for row in rows:
+            if forced_company:
+                row["company"] = ""      # remove CSV company to avoid confusion
+
+            s = ClientsCSVSerializer(
+                data=row,
+                context={
+                    "request": request,
+                    "duplicate_emails": duplicate_emails,
+                    "force_company": forced_company          # <── add here
+                }
+            )
+
+            if not s.is_valid():
+                errors = {k: ", ".join(v) for k,v in s.errors.items()}
+                errors["_rowErrorCount"] = len(s.errors)
+                rowErrors.append(errors)
+                success = False
+            else:
+                rowErrors.append({})
+
+        if not success:
+            return Response({"success": False, "rowErrors": rowErrors}, status=400)
+
+        # create after validated
+        created_ids = []
+        for row in rows:
+            s = ClientsCSVSerializer(
+                data=row,
+                context={
+                    "request": request,
+                    "force_company": forced_company          # <── must include
+                }
+            )
+            s.is_valid(raise_exception=True)
+            obj = s.save()
+            created_ids.append(obj.id)
+        
+        return Response({"success": True, "created_ids": created_ids})

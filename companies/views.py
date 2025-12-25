@@ -1,10 +1,10 @@
 from django.views.decorators.http import require_POST, require_GET
 from django.core.paginator import Paginator
-from django.db.models import Q
 from django.shortcuts import render, get_object_or_404, redirect
 from accounts.models import *
 from django.contrib import messages
 from django.http import JsonResponse
+from django.db import transaction
 from .models import Company
 from .forms import CompanyForm
 import json
@@ -165,6 +165,7 @@ def company_poc_create_url(request):
 
     return JsonResponse({
         'success': True,
+        'tab': 'poc-details',
         'poc': {
             'id': poc.id,
             'name': poc.name,
@@ -191,10 +192,10 @@ def company_poc_update_url(request, poc_id):
 
     poc.save()
 
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': True, 'tab': 'poc-details',})
 
 @require_POST
 def company_poc_delete_url(request, poc_id):
     poc = get_object_or_404(CompanyPOC, id=poc_id)
     poc.delete()
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': True, 'tab': 'poc-details',})

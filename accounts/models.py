@@ -50,9 +50,9 @@ class ClientProfile(models.Model):
         related_name='employees'
     )
     PLAN_CHOICES = (
-        ('ELITE', 'Elite'),
-        ('CORE', 'Core'),
-        ('DIGITAL', 'Digital'),
+        ('Elite', 'ELITE'),
+        ('Core', 'CORE'),
+        ('Digital', 'DIGITAL'),
     )
     plan = models.CharField(max_length=20, choices=PLAN_CHOICES, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True)

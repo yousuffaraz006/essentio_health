@@ -26,12 +26,14 @@
                 <label>Company (Optional)</label>
                 <select name="company" class="form-control">
                   <option value="">Individual / No Company</option>
-                  {% for company in companies %}
-                    <option value="{{ company.id }}">
-                      {{ company.name }}
+                  {% for c in companies %}
+                    <option value="{{ c.id }}" 
+                      {% if selected_company == c.id|stringformat:"s" %}selected{% endif %}
+                    >
+                      {{ c.name }}
                     </option>
                   {% endfor %}
-                </select>
+              </select>
               </div>
             </div>
 
