@@ -50,6 +50,19 @@
               </div>
             </div>
 
+            <!-- Health Coach -->
+            <div class="col-md-6">
+              <div class="form-group form-group-default">
+                <label>Health Coach</label>
+                <select name="health_coach" class="form-control">
+                  <option value="">No Coach Assigned</option>
+                  {% for coach in member_users %}
+                    <option value="{{ coach.id }}">{{ coach.get_full_name|default:coach.username }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
             <!-- Company Name -->
             <div class="col-md-6">
               <div class="form-group form-group-default">

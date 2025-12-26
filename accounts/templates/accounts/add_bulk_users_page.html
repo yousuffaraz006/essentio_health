@@ -41,288 +41,271 @@
 
 {% block page_scripts %}
 <script>
-    // Example schema for companies (header names must match exactly in CSV)
-    const CLIENTS_SCHEMA = [
-        { name: 'first_name', label: 'First Name', required: true, type: 'text', maxLength: 120 },
-        { name: 'last_name', label: 'Last Name', required: false, type: 'text', maxLength: 120 },
-        { name: 'email', label: 'Email', required: true, type: 'email' },
-        { name: 'phone', label: 'Phone', required: true, type: 'phone' },
-        { name: 'city', label: 'City', required: true, type: 'text' },
-        { name: 'state', label: 'State', required: true, type: 'text' },
-        { name: 'country', label: 'Country', required: true, type: 'text' },
-        { name: 'company', label: 'Company Name', required: false, type: 'text' },
-        { name: 'plan', label: 'Plan (Elite/Core/Digital)', required: true, type: 'text' },
-    ];
-    /* csv-uploader.js
-    Exported function: initCsvUploader({ fileInputId, previewContainerId, schema, uploadUrl })
-    Usage: initCsvUploader({ fileInputId: 'csvFileInput', previewContainerId: 'csvPreviewContainer', schema: COMPANY_SCHEMA, uploadUrl: '/companies/upload-csv/' });
-    */
+/* ---------- Helpers (CSV parse + UI) ---------- */
 
-    function parseCSV(text) {
-        // robust CSV parser supporting quoted fields and newlines inside quotes
-        const rows = [];
-        let cur = '', row = [], inQuotes = false;
-        for (let i = 0; i < text.length; i++) {
-            const ch = text[i];
-            const next = text[i + 1];
-            if (ch === '"') {
-                if (inQuotes && next === '"') { cur += '"'; i++; continue; } // escaped quote
-                inQuotes = !inQuotes;
-                continue;
-            }
-            if (!inQuotes && (ch === ',')) {
-                row.push(cur); cur = ''; continue;
-            }
-            if (!inQuotes && (ch === '\n' || ch === '\r')) {
-                // handle CRLF by peeking next
-                if (ch === '\r' && text[i + 1] === '\n') { i++; }
-                row.push(cur); rows.push(row); row = []; cur = ''; continue;
-            }
-            cur += ch;
+function parseCSV(text) {
+    const rows = [];
+    let cur = '', row = [], inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (ch === '"') {
+            if (inQuotes && next === '"') { cur += '"'; i++; continue; }
+            inQuotes = !inQuotes;
+            continue;
         }
-        // push last
-        if (cur !== '' || row.length) {
-            row.push(cur);
-            rows.push(row);
+        if (!inQuotes && ch === ',') { row.push(cur); cur = ''; continue; }
+        if (!inQuotes && (ch === '\n' || ch === '\r')) {
+            if (ch === '\r' && text[i + 1] === '\n') { i++; }
+            row.push(cur); rows.push(row); row = []; cur = ''; continue;
         }
-        return rows;
+        cur += ch;
     }
+    if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+}
 
-    function arrayToObjects(rows) {
-        if (!rows || rows.length === 0) return { headers: [], data: [], ok: false, message: 'CSV empty' };
-        const headers = rows[0].map(h => h.trim());
-        const data = rows.slice(1).map(r => {
-            const obj = {};
-            for (let i = 0; i < headers.length; i++) obj[headers[i]] = (r[i] ?? '').trim();
-            return obj;
-        });
-        return { headers, data, ok: true };
-    }
+function arrayToObjects(rows) {
+    if (!rows || rows.length === 0) return { headers: [], data: [], ok: false, message: 'CSV empty' };
+    const headers = rows[0].map(h => h.trim());
+    const data = rows.slice(1).map(r => {
+        const obj = {};
+        for (let i = 0; i < headers.length; i++) obj[headers[i]] = (r[i] ?? '').trim();
+        return obj;
+    });
+    return { headers, data, ok: true };
+}
 
-    // basic validators
-    const validators = {
-        text: (v, opts) => { if (opts.required && !v) return 'Required'; if (opts.maxLength && v.length > opts.maxLength) return `Max ${opts.maxLength} chars`; return null; },
-        email: v => {
-            if (!v) return null;
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(v) ? null : 'Invalid email';
-        },
-        phone: v => {
-            if (!v) return null;
-            const re = /^[0-9+\-\s()]{6,20}$/;
-            return re.test(v) ? null : 'Invalid phone';
-        },
-        number: v => {
-            if (!v) return 'Required';
-            return isFinite(Number(v)) ? null : 'Must be a number';
-        },
-        date: v => {
-            if (!v) return null;
-            const d = Date.parse(v);
-            return isNaN(d) ? 'Invalid date' : null;
-        }
-    };
+// create a simple text input element for preview
+function makeTextInput(value, fieldName, rowIndex) {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control csv-cell';
+    input.value = value ?? '';
+    input.dataset.field = fieldName;
+    input.dataset.rowIndex = String(rowIndex);
 
-    function validateRow(rowObj, schema) {
-        // returns an object: { fieldName: errorMessage | null, _rowErrorCount }
-        let rowErrors = 0;
-        const result = {};
-        for (const fieldDef of schema) {
-            const key = fieldDef.name;
-            const value = rowObj[key] ?? '';
-            let err = null;
-            const t = fieldDef.type || 'text';
-            const validator = validators[t] || validators.text;
-            err = validator(value, fieldDef);
-            // custom regex
-            if (!err && fieldDef.regex) {
-                if (!new RegExp(fieldDef.regex).test(value)) err = fieldDef.regexMessage || 'Invalid format';
-            }
-            result[key] = err;
-            if (err) rowErrors++;
-        }
-        result._rowErrorCount = rowErrors;
-        return result;
-    }
-
-    function validateAll(rows, schema) {
-        // rows: array of objects (keys are CSV headers)
-        const errors = []; // array of per-row error objects
-        let totalErrors = 0;
-        for (let i = 0; i < rows.length; i++) {
-            const e = validateRow(rows[i], schema);
-            errors.push(e);
-            totalErrors += e._rowErrorCount;
-        }
-        return { errors, totalErrors };
-    }
-
-    function makeTextInput(value, fieldName, rowIndex) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'form-control autosave-field csv-cell';
-        input.value = value ?? '';
-        input.dataset.field = fieldName;
-        input.dataset.rowIndex = String(rowIndex);
-        return input;
-    }
-
-    function clearFieldError(input) {
-        const parent = input.parentElement;
-        const err = parent.querySelector('.csv-error');
-        if (err) err.remove();
-        input.classList.remove('is-invalid');
-    }
-
-    function showFieldError(input, msg) {
+    input.addEventListener('input', () => {
+        // ensures only THIS field clears error
         clearFieldError(input);
-        input.classList.add('is-invalid');
-        const small = document.createElement('div');
-        small.className = 'form-text text-danger csv-error';
-        small.innerText = msg;
-        input.parentElement.appendChild(small);
-    }
 
-    function renderPreview(container, rows, errors, schema) {
-        container.innerHTML = '';
-        const table = document.createElement('table');
-        table.className = 'table table-sm table-bordered csv-preview-table';
-        const thead = document.createElement('thead');
-        const trHead = document.createElement('tr');
-        // header columns (schema order)
-        for (const col of schema) {
-            const th = document.createElement('th');
-            th.innerText = col.label || col.name;
-            trHead.appendChild(th);
+        // UPDATE ROW OBJECT without render
+        const r = parseInt(input.dataset.rowIndex);
+        const f = input.dataset.field;
+
+        if (currentRows && currentRows[r]) {
+            currentRows[r][f] = input.value.trim(); // update live data
         }
-        const thActions = document.createElement('th'); thActions.innerText = 'Actions';
-        trHead.appendChild(thActions);
-        thead.appendChild(trHead);
-        table.appendChild(thead);
-        const tbody = document.createElement('tbody');
 
-        rows.forEach((rowObj, rowIndex) => {
-            const tr = document.createElement('tr');
-            for (const col of schema) {
-                const td = document.createElement('td');
-                const input = makeTextInput(rowObj[col.name], col.name, rowIndex);
-                // clear errors on input change
-                input.addEventListener('input', () => {
-                    clearFieldError(input);
-                    // when edited, show Verify button scenario; handled outside
-                    dispatchPreviewChange();
+        // update error state only for this field
+        if (currentErrors && currentErrors[r] && currentErrors[r][f]) {
+            delete currentErrors[r][f];
+            currentErrors[r]._rowErrorCount = Object.keys(currentErrors[r])
+                .filter(k => k !== "_rowErrorCount").length;
+        }
+
+        // DO NOT re-render here → fixes scroll + ghost errors
+    });
+
+    return input;
+}
+
+function clearFieldError(input) {
+    const parent = input.parentElement;
+    const err = parent.querySelector('.csv-error');
+    if (err) err.remove();
+    input.classList.remove('is-invalid');
+}
+
+function showFieldError(input, msg) {
+    clearFieldError(input);
+    input.classList.add('is-invalid');
+    const small = document.createElement('div');
+    small.className = 'form-text text-danger csv-error';
+    small.innerText = msg;
+    input.parentElement.appendChild(small);
+}
+
+function renderPreview(container, rows, errors, schema) {
+    container.innerHTML = '';
+    const table = document.createElement('table');
+    table.className = 'table table-sm table-bordered csv-preview-table';
+    const thead = document.createElement('thead');
+    const trHead = document.createElement('tr');
+    for (const col of schema) {
+        const th = document.createElement('th'); th.innerText = col.label || col.name;
+        trHead.appendChild(th);
+    }
+    const thActions = document.createElement('th'); thActions.innerText = 'Actions';
+    trHead.appendChild(thActions);
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    rows.forEach((rowObj, rowIndex) => {
+        const tr = document.createElement('tr');
+        for (const col of schema) {
+            const td = document.createElement('td');
+            const input = makeTextInput(rowObj[col.name], col.name, rowIndex);
+            td.appendChild(input);
+
+            // server-side style errors (if present)
+            const ferr = errors?.[rowIndex]?.[col.name];
+            if (ferr) showFieldError(input, ferr);
+            tr.appendChild(td);
+        }
+        // actions column (delete)
+        const tdAct = document.createElement('td');
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-sm btn-outline-danger';
+        delBtn.type = 'button';
+        delBtn.innerText = 'Delete';
+        delBtn.dataset.rowIndex=rowIndex
+        tdAct.appendChild(delBtn)
+        tr.appendChild(tdAct);
+        tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    container.appendChild(table);
+}
+
+function collectEditedRows(container, schema) {
+    const rows = [];
+    const tbodyRows = container.querySelectorAll('tbody tr');
+    tbodyRows.forEach(tr => {
+        const obj = {};
+        schema.forEach((col) => {
+            const input = tr.querySelector(`input[data-field="${col.name}"]`);
+            obj[col.name] = input ? input.value.trim() : '';
+        });
+        rows.push(obj);
+    });
+    return rows;
+}
+
+function dispatchPreviewChange() {
+    document.dispatchEvent(new CustomEvent('csvPreviewChanged'));
+}
+
+function getCSRF() {
+    const name = 'csrftoken';
+    const cookies = document.cookie.split(';').map(c => c.trim());
+    for (const c of cookies) {
+        if (c.startsWith(name + '=')) return decodeURIComponent(c.split('=')[1]);
+    }
+    return '';
+}
+
+function attachDeleteEvents() {
+    const deleteButtons = previewContainer.querySelectorAll("button.btn-outline-danger");
+    deleteButtons.forEach(btn=>{
+        btn.addEventListener("click",()=>{
+            const index = parseInt(btn.dataset.rowIndex)
+
+            currentRows.splice(index,1)
+            currentErrors.splice(index,1)
+
+            btn.closest("tr").remove()   // no re-render => no scroll reset
+
+            // re-index rowIndex attributes on inputs/buttons
+            previewContainer.querySelectorAll("tbody tr").forEach((rowEl,newIdx)=>{
+                rowEl.querySelectorAll("input").forEach(inp=> inp.dataset.rowIndex=newIdx );
+                rowEl.querySelector("button.btn-outline-danger").dataset.rowIndex=newIdx
+            })
+        })
+    })
+}
+
+/* ---------- CSV page initializer (validate -> create) ---------- */
+function initCsvUploader({ fileInputId, previewContainerId, schema, validateUrl, uploadUrl, exactHeaderOrder = true }) {
+    const fileInput = document.getElementById(fileInputId);
+    const previewContainer = document.getElementById(previewContainerId);
+    const actionsContainer = document.getElementById('csvPreviewActions');
+
+    let currentRows = [];
+    let currentErrors = [];
+
+    function clearActions() { actionsContainer.innerHTML = ''; }
+
+    function renderActionsState(state) {
+        // state: { validated: boolean, totalErrors: number }
+        clearActions();
+        const info = document.createElement('div');
+        info.className = 'mb-2';
+        info.innerText = `${currentRows.length} row(s). ${state.totalErrors} error(s)`;
+        actionsContainer.appendChild(info);
+
+        // Validate button
+        const validateBtn = document.createElement('button');
+        validateBtn.className = 'btn btn-sm btn-outline-primary me-2';
+        validateBtn.type = 'button';
+        validateBtn.innerText = 'Validate (server)';
+        validateBtn.addEventListener('click', async () => {
+            // collect current table state
+            currentRows = collectEditedRows(previewContainer, schema);
+            // call backend validate endpoint
+            validateBtn.disabled = true;
+            validateBtn.innerText = 'Validating...';
+            try {
+                const res = await fetch(validateUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRF()
+                    },
+                    body: JSON.stringify({ rows: currentRows })
                 });
-                td.appendChild(input);
-                // if there is error for this field, show it
-                const ferr = errors?.[rowIndex]?.[col.name];
-                if (ferr) showFieldError(input, ferr);
-                tr.appendChild(td);
-            }
-            // actions column
-            const tdAct = document.createElement('td');
-            const delBtn = document.createElement('button');
-            delBtn.className = 'btn btn-sm btn-outline-danger';
-            delBtn.type = 'button';
-            delBtn.innerText = 'Delete';
-            delBtn.addEventListener('click', () => {
-                rows.splice(rowIndex, 1);
-                errors.splice(rowIndex, 1);
-                renderPreview(container, rows, errors, schema);
-                dispatchPreviewChange();
-            });
-            tdAct.appendChild(delBtn);
-            tr.appendChild(tdAct);
-            tbody.appendChild(tr);
-        });
-
-        table.appendChild(tbody);
-        container.appendChild(table);
-    }
-
-    function dispatchPreviewChange() {
-        // small custom event to update buttons (Verify/Create) outside
-        document.dispatchEvent(new CustomEvent('csvPreviewChanged'));
-    }
-
-    function collectEditedRows(container, schema) {
-        const rows = [];
-        const tbodyRows = container.querySelectorAll('tbody tr');
-        tbodyRows.forEach(tr => {
-            const obj = {};
-            schema.forEach((col, idx) => {
-                const input = tr.querySelector(`input[data-field="${col.name}"]`);
-                obj[col.name] = input ? input.value.trim() : '';
-            });
-            rows.push(obj);
-        });
-        return rows;
-    }
-
-    /* Main initializer */
-    function initCsvUploader({ fileInputId, previewContainerId, schema, uploadUrl, exactHeaderOrder = true }) {
-        const fileInput = document.getElementById(fileInputId);
-        const previewContainer = document.getElementById(previewContainerId);
-        const actionsContainer = document.getElementById('csvPreviewActions');
-
-        let currentRows = [];
-        let currentErrors = [];
-
-        function clearActions() { actionsContainer.innerHTML = ''; }
-
-        function renderActions(state) {
-            // state: { totalErrors }
-            clearActions();
-            const info = document.createElement('div');
-            info.className = 'mb-2';
-            info.innerText = `${currentRows.length} row(s). ${state.totalErrors} error(s) found.`;
-            actionsContainer.appendChild(info);
-
-            const verifyBtn = document.createElement('button');
-            verifyBtn.className = 'btn btn-sm btn-outline-primary me-2';
-            verifyBtn.type = 'button';
-            verifyBtn.innerText = state.totalErrors ? 'Verify after edit' : 'Create';
-            verifyBtn.disabled = false;
-            verifyBtn.addEventListener('click', () => {
-                // collect current table state then validate
-                currentRows = collectEditedRows(previewContainer, schema);
-                const val = validateAll(currentRows, schema);
-                currentErrors = val.errors;
-                if (val.totalErrors > 0) {
-                    // re-render preview with error messages
+                const data = await res.json();
+                validateBtn.disabled = false;
+                validateBtn.innerText = 'Validate (server)';
+                if (data.success === false && data.rowErrors) {
+                    currentErrors = data.rowErrors;
                     renderPreview(previewContainer, currentRows, currentErrors, schema);
-                    renderActions({ totalErrors: val.totalErrors });
+                    renderActionsState({ validated: true, totalErrors: data.rowErrors.reduce((s,e)=>s+(e._rowErrorCount||0),0) });
                     // focus first invalid field
                     const firstInvalid = previewContainer.querySelector('.is-invalid');
                     if (firstInvalid) firstInvalid.focus();
                     return;
                 }
-                // no errors -> proceed to create
-                doCreate(currentRows);
-            });
-            actionsContainer.appendChild(verifyBtn);
-
-            const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'btn btn-sm btn-outline-secondary ms-2';
-            cancelBtn.type = 'button';
-            cancelBtn.innerText = 'Cancel';
-            cancelBtn.addEventListener('click', () => {
-                previewContainer.innerHTML = '';
-                clearActions();
-                fileInput.value = '';
-            });
-            actionsContainer.appendChild(cancelBtn);
-        }
-
-        async function doCreate(rowsToCreate) {
-            // final client-side check before sending
-            const val = validateAll(rowsToCreate, schema);
-            if (val.totalErrors > 0) {
-                currentErrors = val.errors;
-                renderPreview(previewContainer, rowsToCreate, currentErrors, schema);
-                renderActions({ totalErrors: val.totalErrors });
-                return;
+                // success: server says all ok
+                currentErrors = [];
+                renderPreview(previewContainer, currentRows, currentErrors, schema);
+                renderActionsState({ validated: true, totalErrors: 0 });
+                // enable create button by rendering it as well
+                showCreateButton();
+            } catch (err) {
+                validateBtn.disabled = false;
+                validateBtn.innerText = 'Validate (server)';
+                showFlash('Validation network error: ' + err.message, true);
             }
-            // POST to server (JSON)
+        });
+        actionsContainer.appendChild(validateBtn);
+
+        // Cancel button
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-sm btn-outline-secondary ms-2';
+        cancelBtn.type = 'button';
+        cancelBtn.innerText = 'Cancel';
+        cancelBtn.addEventListener('click', () => {
+            previewContainer.innerHTML = '';
+            clearActions();
+            fileInput.value = '';
+            currentRows = [];
+            currentErrors = [];
+        });
+        actionsContainer.appendChild(cancelBtn);
+    }
+
+    function showCreateButton() {
+        const createBtn = document.createElement('button');
+        createBtn.className = 'btn btn-sm btn-primary ms-3';
+        createBtn.type = 'button';
+        createBtn.innerText = 'Create';
+        createBtn.addEventListener('click', async () => {
+            // final call to create endpoint
+            createBtn.disabled = true;
+            createBtn.innerText = 'Creating...';
             try {
                 const res = await fetch(uploadUrl, {
                     method: 'POST',
@@ -330,114 +313,100 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': getCSRF()
                     },
-                    body: JSON.stringify({ rows: rowsToCreate })
+                    body: JSON.stringify({ rows: currentRows })
                 });
                 const data = await res.json();
-                if (data.success) {
-                    // success UI: remove preview and show message
+                createBtn.disabled = false;
+                createBtn.innerText = 'Create';
+                if (res.status === 200 && data.success) {
+                    // success: clear preview and show message
                     previewContainer.innerHTML = '';
                     clearActions();
                     fileInput.value = '';
-                    showFlash('Created successfully');
-                } else {
-                    // server returned per-row errors: { rowErrors: [ {...}, ... ] }
-                    if (data.rowErrors) {
-                        currentErrors = data.rowErrors;
-                        renderPreview(previewContainer, rowsToCreate, currentErrors, schema);
-                        renderActions({ totalErrors: data.rowErrors.reduce((s, e) => s + (e._rowErrorCount || 0), 0) });
-                    } else {
-                        showFlash('Server error: ' + (data.message || 'Unknown'), true);
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-                showFlash('Network error: ' + err.message, true);
-            }
-        }
-
-        function showFlash(msg, isError = false) {
-            // minimal flash
-            const f = document.createElement('div');
-            f.className = isError ? 'text-danger' : 'text-success';
-            f.innerText = msg;
-            actionsContainer.appendChild(f);
-            setTimeout(() => f.remove(), 5000);
-        }
-
-        fileInput.addEventListener('change', (ev) => {
-            const file = ev.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const text = e.target.result;
-                // parse CSV
-                const rows = parseCSV(text);
-                if (!rows || rows.length === 0) {
-                    showFlash('CSV seems empty', true);
+                    showFlash(`Created ${data.created.length} users`);
+                    currentRows = [];
+                    currentErrors = [];
                     return;
                 }
-                const { headers, data } = arrayToObjects(rows);
-                // header check
-                const expectedHeaders = schema.map(s => s.name);
-                if (exactHeaderOrder) {
-                    if (headers.length !== expectedHeaders.length || headers.some((h, i) => h !== expectedHeaders[i])) {
-                        showFlash('CSV headers do not match required order/names.', true);
-                        // show expected format example to the user
-                        const exp = document.createElement('div');
-                        exp.className = 'form-text';
-                        exp.innerText = 'Expected headers: ' + expectedHeaders.join(', ');
-                        actionsContainer.appendChild(exp);
-                        return;
-                    }
-                } else {
-                    // only check that all expected headers exist
-                    for (const h of expectedHeaders) {
-                        if (!headers.includes(h)) {
-                            showFlash(`Missing column: ${h}`, true);
-                            return;
-                        }
-                    }
+                // if server returns rowErrors (defensive), show them
+                if (data.rowErrors) {
+                    currentErrors = data.rowErrors;
+                    renderPreview(previewContainer, currentRows, currentErrors, schema);
+                    renderActionsState({ validated: true, totalErrors: data.rowErrors.reduce((s,e)=>s+(e._rowErrorCount||0),0) });
+                    return;
                 }
-
-                currentRows = data;
-                const val = validateAll(currentRows, schema);
-                currentErrors = val.errors;
-                renderPreview(previewContainer, currentRows, currentErrors, schema);
-                renderActions({ totalErrors: val.totalErrors });
-            };
-            reader.readAsText(file);
+                // fallback error
+                showFlash('Create failed: ' + (data.message || 'Unknown error'), true);
+            } catch (err) {
+                createBtn.disabled = false;
+                createBtn.innerText = 'Create';
+                showFlash('Network error: ' + err.message, true);
+            }
         });
 
-        // When edits happen in preview, update actions
-        document.addEventListener('csvPreviewChanged', () => {
-            const rowsNow = collectEditedRows(previewContainer, schema);
-            const val = validateAll(rowsNow, schema);
-            currentRows = rowsNow;
-            currentErrors = val.errors;
-            renderActions({ totalErrors: val.totalErrors });
-        });
-
+        actionsContainer.appendChild(createBtn);
     }
 
-    // helper to get csrf cookie (Django)
-    function getCSRF() {
-        const name = 'csrftoken';
-        const cookies = document.cookie.split(';').map(c => c.trim());
-        for (const c of cookies) {
-            if (c.startsWith(name + '=')) return decodeURIComponent(c.split('=')[1]);
-        }
-        return '';
+    function showFlash(msg, isError=false) {
+        const f = document.createElement('div');
+        f.className = isError ? 'text-danger' : 'text-success';
+        f.innerText = msg;
+        actionsContainer.appendChild(f);
+        setTimeout(()=>f.remove(), 5000);
     }
 
-    // Export initializer for import usage
-    window.initCsvUploader = initCsvUploader;
-    document.addEventListener('DOMContentLoaded', function() {
-        initCsvUploader({
-            fileInputId: 'csvFileInput',
-            previewContainerId: 'csvPreviewContainer',
-            schema: CLIENTS_SCHEMA,
-            uploadUrl: "{% url 'accounts:clients_upload_csv_url' %}"
-        });
+    fileInput.addEventListener('change', (ev) => {
+        const file = ev.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target.result;
+            const rows = parseCSV(text);
+            if (!rows || rows.length < 2) {
+                showFlash('CSV empty or contains only header', true);
+                return;
+            }
+            const { headers, data } = arrayToObjects(rows);
+            const expectedHeaders = schema.map(s => s.name);
+            if (headers.length !== expectedHeaders.length || headers.some((h,i)=>h!==expectedHeaders[i])) {
+                showFlash("CSV headers do not match required order", true);
+                const msg = document.createElement('div');
+                msg.className='form-text';
+                msg.innerText="Expected: " + expectedHeaders.join(", ");
+                actionsContainer.appendChild(msg);
+                return;
+            }
+            currentRows = data;
+            currentErrors = data.map(()=>({})); // start with empty errors so preview shows no inline errors initially
+            renderPreview(previewContainer, currentRows, currentErrors, schema);
+            renderActionsState({ validated: false, totalErrors: 0 });
+        };
+        reader.readAsText(file);
     });
+}
+
+/* ---------- initialization ---------- */
+window.initCsvUploader = initCsvUploader;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initCsvUploader({
+        fileInputId: "csvFileInput",
+        previewContainerId: "csvPreviewContainer",
+        schema: [
+            { name: 'first_name', label: 'First Name' },
+            { name: 'last_name', label: 'Last Name' },
+            { name: 'email', label: 'Email' },
+            { name: 'phone', label: 'Phone' },
+            { name: 'city', label: 'City' },
+            { name: 'state', label: 'State' },
+            { name: 'country', label: 'Country' },
+            { name: 'company', label: 'Company Name' },
+            { name: 'plan', label: 'Plan (Elite/Core/Digital)' }
+        ],
+        validateUrl: "{% url 'accounts:upload_bulk_clients_validate_url' %}",
+        uploadUrl: "{% url 'accounts:upload_bulk_clients_page_url' %}",
+        exactHeaderOrder: true
+    });
+});
 </script>
 {% endblock %}

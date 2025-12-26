@@ -14,6 +14,6 @@ urlpatterns = [
     path('users/add/', add_clients_page, name='add_user_url'),
     path('users/<int:pk>/', user_profile_view, name='user_profile_url'),
     path('users/update/<int:user_id>/', update_clients_view, name='update_clients_url'),
-    path('users/upload-bulk/', upload_bulk_clients_view, name='upload_bulk_clients_page_url'),
-    path('upload-csv/', ClientsCSVUploadView.as_view(), name='clients_upload_csv_url'),
+    path('users/upload-bulk/', ClientsBulkUploadView.as_view(), name='upload_bulk_clients_page_url'),
+    path('users/upload-bulk/validate/', ClientsBulkUploadValidateView.as_view(), name='upload_bulk_clients_validate_url'),
 ]

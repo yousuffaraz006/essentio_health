@@ -55,6 +55,14 @@ class ClientProfile(models.Model):
         ('Digital', 'DIGITAL'),
     )
     plan = models.CharField(max_length=20, choices=PLAN_CHOICES, blank=True)
+    health_coach = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='assigned_users',
+        limit_choices_to={'member_profile__isnull': False}  # <── Only users having MemberProfile
+    )
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
     created_by = models.ForeignKey(

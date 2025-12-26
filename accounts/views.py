@@ -6,12 +6,13 @@ from django.core.paginator import Paginator
 from rest_framework.views import APIView
 from django.db.models import Case, When, Value, IntegerField, Q
 from django.shortcuts import render, get_object_or_404, redirect
+from rest_framework import status
 from .serializers import ClientsCSVSerializer
 from django.http import JsonResponse
 from django.db import transaction
 from .models import *
 from .forms import *
-import json
+import json, re
 
 # Create your views here.
 
@@ -199,12 +200,13 @@ def clients_list_api(request):
 
 def add_clients_page(request):
     companies = Company.objects.all().order_by('name')
+    member_users = User.objects.filter(member_profile__isnull=False).order_by('first_name')
     selected_company = request.GET.get("company_id")  # catch passed company ID
     if request.method == 'GET':
         return render(
             request,
             'accounts/add_users_page.html',
-            {'companies': companies, 'selected_company': selected_company}
+            {'companies': companies, 'selected_company': selected_company, 'member_users': member_users}
         )
 
     # -------- POST: create client user --------
@@ -227,6 +229,8 @@ def add_clients_page(request):
 
     if User.objects.filter(email=email).exists():
         return JsonResponse({'error': 'User with this email already exists'}, status=400)
+
+    health_coach_id = request.POST.get('health_coach')
 
     with transaction.atomic():
         # username generation
@@ -260,6 +264,7 @@ def add_clients_page(request):
             city=city,
             state=state,
             country=country,
+            health_coach=User.objects.filter(id=health_coach_id).first() if health_coach_id else None
         )
     return redirect('accounts:clients_list_url')
 
@@ -267,7 +272,8 @@ def user_profile_view(request, pk):
     user = get_object_or_404(User, pk=pk)
     profile = getattr(user, 'client_profile',None)
     companies = Company.objects.all().order_by('name')
-    return render(request, 'accounts/user_profile.html', {'user': user, 'profile': profile, 'companies': companies})
+    member_users = User.objects.filter(member_profile__isnull=False).order_by('first_name')
+    return render(request, 'accounts/user_profile.html', {'user': user, 'profile': profile, 'companies': companies, 'member_users': member_users})
 
 @require_POST
 def update_clients_view(request, user_id):
@@ -280,7 +286,14 @@ def update_clients_view(request, user_id):
 
     # ---- allowed fields ----
     USER_FIELDS = {'first_name', 'last_name', 'email', 'is_active'}
-    CLIENT_FIELDS = {'phone', 'city', 'state', 'country', 'plan', 'company'}
+    CLIENT_FIELDS = {'phone', 'city', 'state', 'country', 'plan', 'company', 'health_coach'}
+
+    if field == 'health_coach':
+        try:
+            value = int(value)
+            value = User.objects.filter(id=value, member_profile__isnull=False).first()
+        except:
+            value = None
 
     if section == 'user':
         if field not in USER_FIELDS:
@@ -315,63 +328,243 @@ def update_clients_view(request, user_id):
 
     return JsonResponse({'success': True})
 
-def upload_bulk_clients_view(request):
-    return render(request, 'accounts/add_bulk_users_page.html')
+class ClientsBulkUploadValidateView(APIView):
+    """
+    POST: Accepts { rows: [...] } and returns per-row errors without creating.
+    Response:
+      - If any errors: HTTP 200 with { success: False, rowErrors: [...] }
+      - If no errors: HTTP 200 with { success: True }
+    """
+    def post(self, request):
+        rows = request.data.get('rows', []) if isinstance(request.data, dict) else []
+        if not isinstance(rows, list):
+            return Response({"success": False, "message": "Invalid payload: 'rows' must be a list."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-class ClientsCSVUploadView(APIView):
+        row_errors, total_errors = validate_csv_rows(rows, request=request)
+        if total_errors > 0:
+            return Response({"success": False, "rowErrors": row_errors}, status=status.HTTP_200_OK)
+
+        return Response({"success": True}, status=status.HTTP_200_OK)
+
+def validate_csv_rows(rows, request=None):
+    """
+    Validate a list of row dicts coming from CSV.
+
+    Input:
+      rows: list of dicts, each dict has keys:
+        first_name,last_name,email,phone,city,state,country,company,plan
+
+    Output:
+      (row_errors, total_errors)
+      row_errors: list of dicts (same length as rows) where each dict maps field -> error string and includes "_rowErrorCount" key (int)
+      total_errors: sum of all _rowErrorCount
+    """
+    # Prepare return structure
+    row_errors = []
+    total_errors = 0
+
+    if not isinstance(rows, list):
+        return [], 0
+
+    # Normalize and collect CSV emails (for duplicate detection)
+    csv_emails_lower = []
+    for r in rows:
+        e = (r.get('email') or '').strip().lower()
+        csv_emails_lower.append(e)
+
+    # Preload existing emails from DB (lowercase) for quick membership tests
+    existing_emails_qs = User.objects.filter(email__isnull=False).values_list('email', flat=True)
+    existing_emails = set([e.lower() for e in existing_emails_qs if e])
+
+    # Preload companies for all company names present in CSV (lower -> Company)
+    csv_company_names = set(
+        (r.get('company') or '').strip().lower() for r in rows if (r.get('company') or '').strip()
+    )
+    companies_map = {}
+    if csv_company_names:
+        qs = Company.objects.filter(name__iexact__in=list(csv_company_names)) \
+              if False else Company.objects.filter(name__in=list(csv_company_names))
+        # above line uses name__in for simplicity; we'll map case-insensitively below
+
+        # Build case-insensitive map:
+        for c in Company.objects.filter(name__in=list(csv_company_names)).all():
+            companies_map[c.name.strip().lower()] = c
+
+        # If none matched via name__in, try a full DB scan for any missing names (safe fallback)
+        if len(companies_map) < len(csv_company_names):
+            for c in Company.objects.all():
+                lc = c.name.strip().lower()
+                if lc in csv_company_names and lc not in companies_map:
+                    companies_map[lc] = c
+
+    # Helper validators
+    email_re = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+    phone_re = re.compile(r'^[0-9]{7,15}$')
+
+    # Validate row-by-row
+    for idx, row in enumerate(rows):
+        errors = {}
+        # Normalize inputs
+        first = (row.get('first_name') or '').strip()
+        last = (row.get('last_name') or '').strip()
+        email = (row.get('email') or '').strip()
+        email_lc = email.lower()
+        phone = (row.get('phone') or '').strip()
+        city = (row.get('city') or '').strip()
+        state = (row.get('state') or '').strip()
+        country = (row.get('country') or '').strip()
+        csv_company = (row.get('company') or '').strip()
+        plan = (row.get('plan') or '').strip()
+
+        # 1) Required fields
+        if not first:
+            errors['first_name'] = 'Required'
+        if not email:
+            errors['email'] = 'Required'
+        if not plan:
+            errors['plan'] = 'Required'
+
+        # 2) Email format
+        if email:
+            if not email_re.match(email):
+                errors['email'] = errors.get('email', 'Invalid email format')
+
+        # 3) Duplicate email inside CSV
+        if email:
+            if csv_emails_lower.count(email_lc) > 1:
+                errors['email'] = 'Duplicate email inside CSV'
+
+        # 4) Email already exists in DB
+        if email:
+            if email_lc in existing_emails:
+                # If the DB contains this email, treat as error (do not allow overwrite)
+                errors['email'] = 'Email already exists'
+
+        # 5) Phone validation (optional field but validate if present)
+        if phone:
+            # strip non-digits for validation convenience
+            digits = re.sub(r'\D', '', phone)
+            if not phone_re.match(digits):
+                errors['phone'] = 'Phone must be 7-15 digits'
+
+        # 6) Plan validation
+        if plan:
+            if plan.strip().lower() not in ['elite', 'core', 'digital']:
+                errors['plan'] = 'Plan must be Elite/Core/Digital'
+
+        # 7) Company existence check (company optional; if provided must exist)
+        if csv_company:
+            c_obj = companies_map.get(csv_company.strip().lower())
+            if not c_obj:
+                errors['company'] = f"Company '{csv_company}' not found"
+
+        # 8) Length checks (optional, but helpful)
+        if first and len(first) > 120:
+            errors['first_name'] = 'Too long (max 120 chars)'
+        if last and len(last) > 120:
+            errors['last_name'] = 'Too long (max 120 chars)'
+        if city and len(city) > 120:
+            errors['city'] = 'Too long (max 120 chars)'
+        if state and len(state) > 120:
+            errors['state'] = 'Too long (max 120 chars)'
+
+        # 9) Collect results
+        errors_count = len([k for k in errors.keys() if k != '_rowErrorCount'])
+        errors['_rowErrorCount'] = errors_count
+        total_errors += errors_count
+        row_errors.append(errors)
+
+    return row_errors, total_errors
+
+# ---------------------------
+# ClientsBulkUploadView: uses validate_csv_rows
+# ---------------------------
+class ClientsBulkUploadView(APIView):
+    """
+    GET: render upload page
+    POST: validate all rows first using validate_csv_rows, return 400 + rowErrors if any,
+          otherwise create all users inside a single atomic transaction.
+    """
+    def get(self, request):
+        return render(request, "accounts/add_bulk_users_page.html")
 
     def post(self, request):
-        rows = request.data.get('rows', [])
-        forced_company_id = request.GET.get('company_id')  # <── Check URL
-        forced_company = None
+        # expecting JSON body { rows: [ {first_name,...}, ... ] }
+        rows = request.data.get('rows', []) if isinstance(request.data, dict) else []
 
-        if forced_company_id:
-            from companies.models import Company
-            forced_company = Company.objects.filter(id=forced_company_id).first()
+        # Ensure rows is a list
+        if not isinstance(rows, list):
+            return Response({"success": False, "message": "Invalid payload, 'rows' must be a list."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-        # detect duplicate emails inside CSV upload
-        emails = [r.get("email","").lower().strip() for r in rows]
-        duplicate_emails = {e for e in emails if emails.count(e) > 1 and e != ""}
+        # ------------------------------
+        # 1) Strict server-side validation pass
+        # ------------------------------
+        row_errors, total_errors = validate_csv_rows(rows, request=request)
 
-        rowErrors = []
-        success = True
+        # If any errors -> return 400 plus per-row errors (same array length)
+        if total_errors > 0:
+            # Ensure row_errors length matches rows length (it should)
+            # Respond with requested contract
+            return Response({"success": False, "rowErrors": row_errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        for row in rows:
-            if forced_company:
-                row["company"] = ""      # remove CSV company to avoid confusion
-
-            s = ClientsCSVSerializer(
-                data=row,
-                context={
-                    "request": request,
-                    "duplicate_emails": duplicate_emails,
-                    "force_company": forced_company          # <── add here
-                }
-            )
-
-            if not s.is_valid():
-                errors = {k: ", ".join(v) for k,v in s.errors.items()}
-                errors["_rowErrorCount"] = len(s.errors)
-                rowErrors.append(errors)
-                success = False
-            else:
-                rowErrors.append({})
-
-        if not success:
-            return Response({"success": False, "rowErrors": rowErrors}, status=400)
-
-        # create after validated
+        # ------------------------------
+        # 2) All rows validated: create all users atomically
+        # ------------------------------
         created_ids = []
-        for row in rows:
-            s = ClientsCSVSerializer(
-                data=row,
-                context={
-                    "request": request,
-                    "force_company": forced_company          # <── must include
-                }
-            )
-            s.is_valid(raise_exception=True)
-            obj = s.save()
-            created_ids.append(obj.id)
-        
-        return Response({"success": True, "created_ids": created_ids})
+        try:
+            with transaction.atomic():
+                for row in rows:
+                    first = (row.get('first_name') or '').strip()
+                    last = (row.get('last_name') or '').strip()
+                    email = (row.get('email') or '').strip()
+                    phone = (row.get('phone') or '').strip()
+                    city = (row.get('city') or '').strip()
+                    state = (row.get('state') or '').strip()
+                    country = (row.get('country') or '').strip()
+                    csv_company = (row.get('company') or '').strip()
+                    plan = (row.get('plan') or '').strip()
+
+                    # generate unique username based on email local-part
+                    base = email.split('@')[0].lower()
+                    username = base
+                    counter = 1
+                    while User.objects.filter(username=username).exists():
+                        username = f"{base}{counter}"
+                        counter += 1
+
+                    user = User.objects.create_user(
+                        username=username,
+                        email=email,
+                        first_name=first,
+                        last_name=last
+                    )
+
+                    # resolve company if provided (case-insensitive)
+                    company_obj = None
+                    if csv_company:
+                        company_obj = Company.objects.filter(name__iexact=csv_company.strip()).first()
+
+                    ClientProfile.objects.create(
+                        user=user,
+                        phone=phone,
+                        city=city,
+                        state=state,
+                        country=country,
+                        company=company_obj,
+                        plan=plan.capitalize() if plan else ''
+                    )
+
+                    created_ids.append(user.id)
+
+        except Exception as e:
+            # Any exception - rollback already triggered by transaction.atomic()
+            # Return a 500-like response with some helpful information
+            return Response({"success": False, "message": "Server error during creation", "errors": str(e)},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # ------------------------------
+        # 3) Success
+        # ------------------------------
+        return Response({"success": True, "created": created_ids}, status=status.HTTP_200_OK)

@@ -225,7 +225,7 @@
                 location.reload(); // simple approach: reload to refresh table
             } else {
                 const err = await resp.json();
-                console.log(err.error || 'Something went wrong');
+                showNotification(err.error || 'Something went wrong');
             }
         });
 

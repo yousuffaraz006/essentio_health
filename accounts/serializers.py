@@ -54,9 +54,16 @@ class ClientsCSVSerializer(serializers.Serializer):
         return value
 
     def validate_company(self, value):
-        value = value.strip()
-        if value and not Company.objects.filter(name__iexact=value).exists():
+        value = value.strip() if value else ""
+
+        # scenario: no CSV company + no forced company → OK
+        if not value:
+            return ""
+
+        # CSV given company, require DB match
+        if not Company.objects.filter(name__iexact=value).exists():
             raise serializers.ValidationError("Company not found")
+
         return value
 
     # ------------------- CREATE USER & PROFILE -------------------
@@ -81,17 +88,10 @@ class ClientsCSVSerializer(serializers.Serializer):
         )
 
         # ---------------- COMPANY SELECTION LOGIC ----------------
-        forced_company = self.context.get("force_company")
-
-        if forced_company:
-            company_obj = forced_company                                   # <── ALWAYS use forced one
-        else:
-            company_name = validated.get('company', '').strip()
-            company_obj = Company.objects.filter(name__iexact=company_name).first() if company_name else None
+        company_name = validated.get('company') or ""
+        company_obj = Company.objects.filter(name__iexact=company_name).first() if company_name else None
 
         # ---------------- CREATE PROFILE --------------------------
-        print("FORCED COMPANY:", forced_company)
-        print("ROW COMPANY FIELD:", validated.get('company'))
         return ClientProfile.objects.create(
             user=user,
             company=company_obj,                                            # <── final result

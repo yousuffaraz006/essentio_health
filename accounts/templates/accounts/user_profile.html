@@ -198,6 +198,22 @@
                 </div>
               </div>
 
+              <!-- Health Coach -->
+              <div class="col-md-4">
+                <div class="form-group form-group-default">
+                  <label>Health Coach</label>
+                  <select class="form-select autosave-field" data-section="client_profile" data-field="health_coach">
+                    <option value="">No Coach Assigned</option>
+                    {% for m in member_users %}
+                      <option value="{{ m.id }}"
+                        {% if user.client_profile.health_coach_id == m.id %}selected{% endif %}>
+                        {{ m.get_full_name|default:m.username }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+
             </div>
           </div>
           <div
